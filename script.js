@@ -2,7 +2,7 @@
 // 🌿 PLANTIFY INTELLIGENCE ENGINE (script.js)
 // ==========================================
 
-const GROQ_API_KEY = ""; 
+const GROQ_API_KEY = ""; // KOSONGKAN JIKA SUDAH PAKAI VERCEL PROXY
 let mySavedPlants = []; 
 
 // Database Tanaman
@@ -94,6 +94,15 @@ const plantDatabase = [
 function switchPage(pageId) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     document.getElementById('nav-' + pageId).classList.add('active');
+    
+    // Close sidebar on mobile when navigating
+    if (window.innerWidth < 1024) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+    }
+
     document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
     const targetPage = document.getElementById('page-' + pageId);
     if(targetPage) {
@@ -110,16 +119,29 @@ function switchPage(pageId) {
     if(pageId === 'careguide') renderCareGuidePage();
 }
 
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+    } else {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('opacity-0');
+        setTimeout(() => overlay.classList.add('hidden'), 300);
+    }
+}
+
 function toggleSavePlant(plantId) {
     const index = mySavedPlants.indexOf(plantId);
     if (index > -1) mySavedPlants.splice(index, 1);
     else mySavedPlants.push(plantId);
     
-    // Update button di dashboard
     const btn = document.getElementById(`btn-save-${plantId}`);
     if(btn) updateSaveButton(btn, mySavedPlants.includes(plantId));
     
-    // Refresh page jika sedang aktif
     if(document.getElementById('page-myplants').classList.contains('active')) renderMyPlantsPage();
     if(document.getElementById('page-careguide').classList.contains('active')) renderCareGuidePage();
 }
@@ -136,50 +158,38 @@ function updateSaveButton(btn, isSaved) {
 }
 
 // ==========================================
-// 📊 GAUGE & SLIDER LOGIC (CORE UPDATE)
+// 📊 GAUGE & SLIDER LOGIC
 // ==========================================
 
 function updateGauges() {
-    // 1. Ambil Nilai dari 4 Slider
-    // PERBAIKAN: Mengambil ID yang benar dari HTML kamu
     const temp = parseInt(document.getElementById('temp-slider').value);
     const hum = parseInt(document.getElementById('hum-slider').value);
     const tvoc = parseInt(document.getElementById('tvoc-slider').value);
     const co2 = parseInt(document.getElementById('co2-slider').value);
 
-    // 2. Update Text Angka di Samping Slider
     document.getElementById('val-temp').innerText = temp + "°C";
     document.getElementById('val-hum').innerText = hum + "%";
     document.getElementById('val-tvoc').innerText = tvoc + " ppb";
     document.getElementById('val-co2').innerText = co2 + " ppm";
 
-    // 3. Update Text Angka di Bawah Gauge (Jarum)
-    // Query selector ini mencari div .gauge-value di dalam ID parent (misal #g-temp)
+    // Update Angka di bawah gauge
     document.querySelector('#g-temp .gauge-value').innerText = temp;
     document.querySelector('#g-hum .gauge-value').innerText = hum;
     document.querySelector('#g-tvoc .gauge-value').innerText = tvoc;
     document.querySelector('#g-co2 .gauge-value').innerText = co2;
 
-    // 4. Definisi Warna
-    const cGreen = "#22c55e"; // safe
-    const cYellow = "#eab308"; // warning
-    const cRed = "#ef4444";    // danger
+    const cGreen = "#22c55e", cYellow = "#eab308", cRed = "#ef4444";
 
-    // 5. Update Jarum (Rotation) & Warna
     updateSingleGauge('temp', temp, 18, 28, ['Cool', 'Good', 'Hot'], [cYellow, cGreen, cRed]); 
     updateSingleGauge('hum', hum, 30, 60, ['Dry', 'Ideal', 'Damp'], [cRed, cGreen, cRed]); 
     updateSingleGauge('tvoc', tvoc, 200, 600, ['Safe', 'Mod', 'High'], [cGreen, cYellow, cRed]);
     updateSingleGauge('co2', co2, 800, 1500, ['Fresh', 'Stuffy', 'Poor'], [cGreen, cYellow, cRed]);
     
-    // 6. Update Score Utama (Kartu Gelap)
     updateAQI(temp, hum, tvoc, co2);
 }
 
 function updateAQI(t, h, tvoc, co2) {
-    // Hitung rata-rata penalti (Simplifikasi)
-    // Semakin tinggi TVOC/CO2, score makin turun
     let penalty = ((tvoc/1000)*30) + ((co2/2000)*30);
-    // Suhu/Hum ekstrem juga kurangi score
     if(t > 30 || t < 18) penalty += 10;
     if(h < 30 || h > 70) penalty += 10;
 
@@ -195,16 +205,12 @@ function updateAQI(t, h, tvoc, co2) {
     if(barElement) barElement.style.width = score + "%";
 
     let statusText = "Excellent", colorClass = "text-green-400", message = "Air is clean.";
-    
     if (score < 50) { 
-        statusText = "Poor"; 
-        colorClass = "text-red-500"; 
+        statusText = "Poor"; colorClass = "text-red-500"; 
         if(barElement) barElement.className = "h-full bg-red-500 rounded-full transition-all duration-500";
         message = "Attention! High pollution detected."; 
-    }
-    else if (score < 80) { 
-        statusText = "Moderate"; 
-        colorClass = "text-yellow-400"; 
+    } else if (score < 80) { 
+        statusText = "Moderate"; colorClass = "text-yellow-400"; 
         if(barElement) barElement.className = "h-full bg-yellow-400 rounded-full transition-all duration-500";
         message = "Air quality is okay, but could be better."; 
     } else {
@@ -222,20 +228,15 @@ function updateSingleGauge(id, val, limit1, limit2, texts, colors) {
 
     let deg = -90, color = colors[0], status = texts[0];
 
-    // Logika Derajat Putaran Jarum (-90 kiri, 0 tegak, 90 kanan)
     if (val <= limit1) {
-        color = colors[0]; status = texts[0]; 
-        deg = -90 + (val / limit1) * 60; // Naik pelan di zona aman
+        color = colors[0]; status = texts[0]; deg = -90 + (val / limit1) * 60;
     } else if (val > limit1 && val <= limit2) {
-        color = colors[1]; status = texts[1]; 
-        deg = -30 + ((val - limit1) / (limit2 - limit1)) * 60;
+        color = colors[1]; status = texts[1]; deg = -30 + ((val - limit1) / (limit2 - limit1)) * 60;
     } else {
-        color = colors[2]; status = texts[2]; 
-        deg = 30 + ((val - limit2) / limit2) * 60;
+        color = colors[2]; status = texts[2]; deg = 30 + ((val - limit2) / limit2) * 60;
         if(deg > 90) deg = 90;
     }
 
-    // Exception: Humidity (Kurva Terbalik: Rendah = Bahaya, Tengah = Bagus, Tinggi = Bahaya)
     if(id === 'hum') { 
         if(val < 30) { color = colors[0]; status = texts[0]; deg = -90 + (val/30)*60; }
         else if(val <= 60) { color = colors[1]; status = texts[1]; deg = 0; }
@@ -243,19 +244,8 @@ function updateSingleGauge(id, val, limit1, limit2, texts, colors) {
     }
 
     if(needle) needle.style.transform = `rotate(${deg}deg)`;
-    
-    if(arc) {
-        // Gradient background statis
-        if(id === 'hum') 
-            arc.style.background = `conic-gradient(${colors[0]} 0deg 60deg, ${colors[1]} 60deg 120deg, ${colors[2]} 120deg 180deg, transparent 180deg)`;
-        else
-            arc.style.background = `conic-gradient(${colors[0]} 0deg 60deg, ${colors[1]} 60deg 120deg, ${colors[2]} 120deg 180deg, transparent 180deg)`;
-    }
-
-    if(statusText) {
-        statusText.innerText = status;
-        statusText.style.color = color;
-    }
+    if(arc) arc.style.background = `conic-gradient(${colors[0]} 0deg 60deg, ${colors[1]} 60deg 120deg, ${colors[2]} 120deg 180deg, transparent 180deg)`;
+    if(statusText) { statusText.innerText = status; statusText.style.color = color; }
 }
 
 // ==========================================
@@ -263,7 +253,6 @@ function updateSingleGauge(id, val, limit1, limit2, texts, colors) {
 // ==========================================
 
 function analyzeManualData() {
-    // Tampilkan Loading
     const container = document.getElementById('recommendation-container');
     container.innerHTML = `
         <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-400 animate-pulse">
@@ -273,7 +262,6 @@ function analyzeManualData() {
     `;
     lucide.createIcons();
 
-    // Delay 500ms biar kelihatan loadingnya
     setTimeout(() => {
         const temp = parseInt(document.getElementById('temp-slider').value);
         const hum = parseInt(document.getElementById('hum-slider').value);
@@ -284,7 +272,6 @@ function analyzeManualData() {
 
         let filtered = plantDatabase.filter(plant => {
             if (safety === 'Yes' && plant.toxicity === true) return false;
-            
             let score = 0;
             if (temp > 28 && (plant.tags.includes('removes_heat') || plant.tags.includes('cooling'))) score += 2;
             if (hum < 40 && plant.tags.includes('humidifier')) score += 3;
@@ -293,14 +280,13 @@ function analyzeManualData() {
             if (co2 > 1000 && (plant.tags.includes('removes_co2') || plant.tags.includes('cam_photosynthesis'))) score += 3;
             if (light === 'Low' && plant.light_needs.includes('Low')) score += 1;
             if (light === 'Bright' && plant.light_needs.includes('Bright')) score += 1;
-
             plant.tempScore = score;
             return score > 0;
         });
 
         filtered.sort((a, b) => b.tempScore - a.tempScore);
         renderPlants(filtered.slice(0, 4)); 
-    }, 500);
+    }, 800);
 }
 
 function renderPlants(plants) {
@@ -308,7 +294,7 @@ function renderPlants(plants) {
     container.innerHTML = ''; 
 
     if(plants.length === 0) {
-        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-10">No specific match. Try adjusting sliders or preferences.</p>`;
+        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-10">No specific match. Try adjusting sliders.</p>`;
         return;
     }
 
@@ -346,7 +332,6 @@ function renderPlants(plants) {
     lucide.createIcons();
 }
 
-// 📌 SMART CHAT LOGIC
 function askAIAboutCurrentStats() {
     const temp = document.getElementById('temp-slider').value;
     const hum = document.getElementById('hum-slider').value;
@@ -355,15 +340,13 @@ function askAIAboutCurrentStats() {
 
     if (!isChatOpen) toggleChat();
 
-    const prompt = `My room stats: Temp ${temp}°C, Humidity ${hum}%, TVOC ${tvoc}ppb, CO2 ${co2}ppm. What plants do you recommend and why?`;
+    const prompt = `My room stats: Temp ${temp}°C, Humidity ${hum}%, TVOC ${tvoc}ppb, CO2 ${co2}ppm. What plants do you recommend?`;
     
     const chatInput = document.getElementById('chat-input');
     chatInput.value = prompt;
     document.getElementById('chat-send-btn').click();
 }
 
-// ... (renderMyPlantsPage & renderCareGuidePage) ...
-// (Bagian ini tidak berubah, gunakan yang sudah ada)
 const vidaVerdeProducts = [
     { name: "Nature's Defender", desc: "Pest Control Spray", icon: "shield-check", color: "text-red-500", bg: "bg-red-50", link: "https://shopee.sg/Nature's-Defender-Garden-Pest-Control-Spray-all-natural-poison-free-for-plant-pests-and-insects-Vidaverde-300ml-i.481505002.10946631746" },
     { name: "Tweetmint Cleaner", desc: "Enzyme Cleaner", icon: "sparkles", color: "text-teal-500", bg: "bg-teal-50", link: "https://shopee.sg/Tweetmint-Enzyme-Cleaner-safe-non-toxic-all-in-one-cleaner-hypoallergenic-biodegradable-Vidaverde-i.481505002.13507041095" },
@@ -440,14 +423,12 @@ document.addEventListener('DOMContentLoaded', () => {
     analyzeManualData(); 
     updateGauges(); 
 
-    // PERBAIKAN UTAMA: List ID harus sesuai dengan HTML
     const inputs = ['temp-slider', 'hum-slider', 'tvoc-slider', 'co2-slider', 'pref-light', 'pref-safety'];
     
     inputs.forEach(id => {
         const el = document.getElementById(id);
         if(el) {
             el.addEventListener('input', () => {
-                // Saat slider gerak, update Text & Jarum saja. Tanaman tidak berubah.
                 updateGauges(); 
             });
         }

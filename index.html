@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Plantify Dashboard</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,49 +16,61 @@
 
     <div class="flex h-screen overflow-hidden">
         
-        <aside class="w-[280px] bg-white flex flex-col fixed h-full z-20 border-r border-gray-100 py-8 px-6 shadow-sm">
-            <div class="flex items-center gap-3 mb-10 px-2">
-                <div class="w-10 h-10 bg-green-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-200">
-                    <i data-lucide="leaf" class="w-6 h-6"></i>
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden transition-opacity opacity-0"></div>
+
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-[280px] bg-white flex flex-col border-r border-gray-100 py-6 px-6 shadow-xl lg:shadow-sm transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 ease-in-out">
+            <div class="flex items-center justify-between mb-8 px-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-green-700 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-200">
+                        <i data-lucide="leaf" class="w-6 h-6"></i>
+                    </div>
+                    <h1 class="font-[Poppins] font-extrabold text-2xl text-green-900 tracking-tight">Plantify<span class="text-green-500">.</span></h1>
                 </div>
-                <h1 class="font-[Poppins] font-extrabold text-2xl text-green-900 tracking-tight">Plantify<span class="text-green-500">.</span></h1>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-red-500">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
             </div>
 
             <nav class="flex-1 space-y-2">
-                <button onclick="switchPage('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left">
+                <button onclick="switchPage('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left hover:bg-green-50 hover:text-green-700 transition-colors">
                     <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                     <span class="text-base font-bold">Dashboard</span>
                 </button>
-                <button onclick="switchPage('myplants')" id="nav-myplants" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left">
+                <button onclick="switchPage('myplants')" id="nav-myplants" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left hover:bg-green-50 hover:text-green-700 transition-colors">
                     <i data-lucide="sprout" class="w-5 h-5"></i>
                     <span class="text-base font-bold">My Plants</span>
                 </button>
-                <button onclick="switchPage('careguide')" id="nav-careguide" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left">
+                <button onclick="switchPage('careguide')" id="nav-careguide" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left hover:bg-green-50 hover:text-green-700 transition-colors">
                     <i data-lucide="book-open" class="w-5 h-5"></i>
                     <span class="text-base font-bold">Care Guide</span>
                 </button>
-                <button onclick="switchPage('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left">
+                <button onclick="switchPage('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left hover:bg-green-50 hover:text-green-700 transition-colors">
                     <i data-lucide="settings" class="w-5 h-5"></i>
                     <span class="text-base font-bold">Settings</span>
                 </button>
             </nav>
         </aside>
 
-        <main class="flex-1 ml-[280px] p-8 h-full overflow-y-auto relative">
+        <main class="flex-1 w-full p-4 lg:p-8 h-full overflow-y-auto relative">
             
-            <header class="flex justify-between items-center mb-8 bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-sm border border-gray-100 sticky top-0 z-30">
-                <div>
-                    <h2 class="font-[Poppins] text-2xl font-bold text-gray-800" id="page-title">Dashboard</h2>
-                    <p class="text-gray-500 text-sm font-medium">Monitor your environment stats.</p>
+            <header class="flex justify-between items-center mb-6 lg:mb-8 bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-sm border border-gray-100 sticky top-0 z-30">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="lg:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <div>
+                        <h2 class="font-[Poppins] text-xl lg:text-2xl font-bold text-gray-800" id="page-title">Dashboard</h2>
+                        <p class="text-gray-500 text-xs lg:text-sm font-medium">Hello Green Thumb! 👋</p>
+                    </div>
                 </div>
             </header>
 
             <div id="page-dashboard" class="page-content active">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                     
                     <div class="lg:col-span-1 space-y-6">
                         
-                        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                        <div class="bg-white rounded-3xl p-5 lg:p-6 shadow-sm border border-gray-100">
                             <h3 class="font-[Poppins] font-bold text-gray-800 mb-6 flex items-center gap-2">
                                 <i data-lucide="sliders" class="w-5 h-5 text-green-600"></i>
                                 Live Sensor Simulation
@@ -105,7 +116,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Kid Safety</label>
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Safety</label>
                                     <select id="pref-safety" class="w-full text-xs bg-gray-50 border-none rounded-lg p-2 text-gray-700 font-bold focus:ring-1 focus:ring-green-200 cursor-pointer">
                                         <option value="No">Safe (All)</option>
                                         <option value="Yes">Non-Toxic</option>
@@ -113,21 +124,22 @@
                                 </div>
                             </div>
 
-                            <button onclick="analyzeManualData()" class="mt-6 w-full bg-green-800 hover:bg-green-900 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-2 group text-sm">
-                                <i data-lucide="search" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> 
-                                <span>Find Plants</span>
-                            </button>
-
-                            <button onclick="askAIAboutCurrentStats()" class="mt-6 w-full bg-green-800 hover:bg-green-900 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-2 group text-sm">
-                                <i data-lucide="message-circle" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> 
-                                <span>Chat with AI</span>
-                            </button>
+                            <div class="flex gap-2 mt-6">
+                                <button onclick="analyzeManualData()" class="flex-1 bg-green-800 hover:bg-green-900 text-white font-bold py-3 rounded-xl shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-2 group text-sm">
+                                    <i data-lucide="search" class="w-4 h-4"></i> 
+                                    <span>Find</span>
+                                </button>
+                                <button onclick="askAIAboutCurrentStats()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 group text-sm">
+                                    <i data-lucide="bot" class="w-4 h-4"></i> 
+                                    <span>Ask AI</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
                             <div class="absolute top-0 right-0 w-32 h-32 bg-green-500 rounded-full blur-[60px] opacity-20"></div>
                             <div class="relative z-10">
-                                <h3 class="font-medium text-gray-400 mb-1">Air Quality Score</h3>
+                                <h3 class="font-medium text-gray-400 mb-1 text-sm">Air Quality Score</h3>
                                 <div class="flex items-end gap-2 mb-4">
                                     <span class="font-[Poppins] text-5xl font-bold tracking-tighter" id="aqi-score">92</span>
                                     <span class="text-green-400 font-medium mb-2" id="aqi-status">Excellent</span>
@@ -143,54 +155,54 @@
 
                     <div class="lg:col-span-2">
                         
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
-                                <span class="text-xs font-bold text-gray-400 mb-2">Temp (°C)</span>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 mb-8">
+                            <div class="bg-white p-3 lg:p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
+                                <span class="text-[10px] lg:text-xs font-bold text-gray-400 mb-2">Temp (°C)</span>
                                 <div class="gauge-container" id="g-temp">
                                     <div class="gauge-arc"></div>
                                     <div class="gauge-needle"></div>
                                     <div class="gauge-value">24</div>
                                 </div>
-                                <span class="text-xs font-bold mt-1 status-text text-green-600">Comfy</span>
+                                <span class="text-[10px] lg:text-xs font-bold mt-1 status-text text-green-600">Comfy</span>
                             </div>
 
-                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
-                                <span class="text-xs font-bold text-gray-400 mb-2">Humidity (%)</span>
+                            <div class="bg-white p-3 lg:p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
+                                <span class="text-[10px] lg:text-xs font-bold text-gray-400 mb-2">Humidity (%)</span>
                                 <div class="gauge-container" id="g-hum">
                                     <div class="gauge-arc"></div>
                                     <div class="gauge-needle"></div>
                                     <div class="gauge-value">50</div>
                                 </div>
-                                <span class="text-xs font-bold mt-1 status-text text-green-600">Ideal</span>
+                                <span class="text-[10px] lg:text-xs font-bold mt-1 status-text text-green-600">Ideal</span>
                             </div>
                             
-                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
-                                <span class="text-xs font-bold text-gray-400 mb-2">TVOC (ppb)</span>
+                            <div class="bg-white p-3 lg:p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
+                                <span class="text-[10px] lg:text-xs font-bold text-gray-400 mb-2">TVOC (ppb)</span>
                                 <div class="gauge-container" id="g-tvoc">
                                     <div class="gauge-arc"></div>
                                     <div class="gauge-needle"></div>
                                     <div class="gauge-value">100</div>
                                 </div>
-                                <span class="text-xs font-bold mt-1 status-text text-green-600">Safe</span>
+                                <span class="text-[10px] lg:text-xs font-bold mt-1 status-text text-green-600">Safe</span>
                             </div>
 
-                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
-                                <span class="text-xs font-bold text-gray-400 mb-2">CO2 (ppm)</span>
+                            <div class="bg-white p-3 lg:p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
+                                <span class="text-[10px] lg:text-xs font-bold text-gray-400 mb-2">CO2 (ppm)</span>
                                 <div class="gauge-container" id="g-co2">
                                     <div class="gauge-arc"></div>
                                     <div class="gauge-needle"></div>
                                     <div class="gauge-value">450</div>
                                 </div>
-                                <span class="text-xs font-bold mt-1 status-text text-green-600">Fresh</span>
+                                <span class="text-[10px] lg:text-xs font-bold mt-1 status-text text-green-600">Fresh</span>
                             </div>
                         </div>
 
-                        <div class="mb-6 flex justify-between items-end">
-                            <h3 class="font-[Poppins] text-xl font-bold text-gray-800">Recommended Plants 🌱</h3>
-                            <span class="text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full">Auto-Match</span>
+                        <div class="mb-4 lg:mb-6 flex justify-between items-end">
+                            <h3 class="font-[Poppins] text-lg lg:text-xl font-bold text-gray-800">Recommended 🌱</h3>
+                            <span class="text-[10px] lg:text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full">Auto-Match</span>
                         </div>
 
-                        <div id="recommendation-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div id="recommendation-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                             <div class="col-span-full text-center py-10 text-gray-400 animate-pulse">
                                 Loading plant database...
                             </div>
@@ -221,12 +233,12 @@
         </main>
     </div>
 
-    <button onclick="toggleChat()" class="fixed bottom-6 right-6 w-16 h-16 bg-green-700 hover:bg-green-800 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-50 group">
-        <i data-lucide="message-circle" class="w-8 h-8 group-[.open]:hidden"></i>
-        <i data-lucide="x" class="w-8 h-8 hidden group-[.open]:block"></i>
+    <button onclick="toggleChat()" class="fixed bottom-6 right-6 w-14 h-14 lg:w-16 lg:h-16 bg-green-700 hover:bg-green-800 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-50 group">
+        <i data-lucide="message-circle" class="w-7 h-7 lg:w-8 lg:h-8 group-[.open]:hidden"></i>
+        <i data-lucide="x" class="w-7 h-7 lg:w-8 lg:h-8 hidden group-[.open]:block"></i>
     </button>
 
-    <div id="chat-window" class="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right scale-0 opacity-0 z-50 border border-gray-100">
+    <div id="chat-window" class="fixed bottom-24 right-4 lg:right-6 left-4 lg:left-auto lg:w-96 h-[60vh] lg:h-[500px] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right scale-0 opacity-0 z-50 border border-gray-100">
         <div class="bg-green-700 p-4 flex items-center gap-3 text-white">
             <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                 <i data-lucide="bot" class="w-6 h-6"></i>
@@ -245,7 +257,7 @@
             <div class="flex gap-3">
                 <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 text-green-700 font-bold text-xs">AI</div>
                 <div class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-gray-600 border border-gray-100">
-                    Hello Green Thumb! 🌱<br>Ask me anything about plant care.
+                    Hello! 🌱<br>Ask me about plant care.
                 </div>
             </div>
         </div>
@@ -258,6 +270,21 @@
             </form>
         </div>
     </div>
+
+    <script>
+        const uiSliders = ['pm25', 'co2', 'temp', 'hum'];
+        uiSliders.forEach(id => {
+            const slider = document.getElementById(id + '-slider');
+            const display = document.getElementById('val-' + id);
+            if(slider && display) {
+                slider.addEventListener('input', (e) => {
+                    let val = e.target.value;
+                    let unit = id === 'pm25' ? ' µg/m³' : id === 'co2' ? ' ppm' : id === 'temp' ? '°C' : '%';
+                    display.innerText = val + unit;
+                });
+            }
+        });
+    </script>
 
     <script src="script.js"></script>
     <script src="chatbot.js"></script>
