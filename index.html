@@ -44,9 +44,9 @@
                     <i data-lucide="book-open" class="w-5 h-5"></i>
                     <span class="text-base font-bold">Care Guide</span>
                 </button>
-                <button onclick="switchPage('settings')" id="nav-settings" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left hover:bg-green-50 hover:text-green-700 transition-colors">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                    <span class="text-base font-bold">Settings</span>
+                <button onclick="switchPage('reminders')" id="nav-reminders" class="nav-item w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-left hover:bg-green-50 hover:text-green-700 transition-colors">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="text-base font-bold">Reminder</span>
                 </button>
             </nav>
         </aside>
@@ -223,11 +223,12 @@
                 <div id="careguide-container" class="space-y-6"></div>
             </div>
 
-            <div id="page-settings" class="page-content hidden">
-                <div class="bg-white rounded-3xl p-10 text-center shadow-sm">
-                    <h3 class="font-[Poppins] font-bold text-gray-800 text-xl mb-2">Settings Page</h3>
-                    <p class="text-gray-500">Configuration options will appear here.</p>
+            <div id="page-reminders" class="page-content hidden">
+                <div class="mb-6">
+                    <h3 class="font-[Poppins] text-xl font-bold text-gray-800">Watering Reminders ⏰</h3>
+                    <p class="text-gray-500 text-sm font-medium">Keep track of your plant care schedule.</p>
                 </div>
+                <div id="rm-list" class="max-w-2xl space-y-4"></div>
             </div>
 
         </main>

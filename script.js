@@ -2,19 +2,19 @@
 // 🌿 PLANTIFY INTELLIGENCE ENGINE (script.js)
 // ==========================================
 
-const GROQ_API_KEY = ""; // KOSONGKAN JIKA SUDAH PAKAI VERCEL PROXY
+const GROQ_API_KEY = ""; 
 let mySavedPlants = []; 
 
-// Database Tanaman
+// 1. DATABASE TANAMAN (Updated: Areca Palm Max Temp 32°C)
 const plantDatabase = [
     {
         id: 'snake_plant',
         name: 'Snake Plant',
         scientific: 'Dracaena trifasciata',
         tags: ['removes_co2', 'low_light', 'cam_photosynthesis', 'bedroom_friendly', 'removes_tvoc'],
-        toxicity: true,
-        light_needs: 'Low to High',
-        maintenance: 'Very Easy',
+        // Snake plant sangat kuat (Tahan sampai 40C, Tahan kering)
+        safety_limits: { min_hum: 0, max_temp: 40 }, 
+        water_freq: "Every 2-3 weeks",
         price: 'S$ 11.00',
         efficiency: 'High CO2 removal',
         image: 'assets/snake_plant.jpg',
@@ -25,9 +25,9 @@ const plantDatabase = [
         name: 'Boston Fern',
         scientific: 'Nephrolepis exaltata',
         tags: ['humidifier', 'removes_tvoc'], 
-        toxicity: false,
-        light_needs: 'Bright Indirect',
-        maintenance: 'High',
+        // Sangat sensitif kering. Mati jika humidity < 40%
+        safety_limits: { min_hum: 40, max_temp: 30 }, 
+        water_freq: "Twice weekly (Keep moist)",
         price: 'S$ 21.90',
         efficiency: 'Natural Humidifier',
         image: 'assets/boston_fern.jpg',
@@ -38,9 +38,9 @@ const plantDatabase = [
         name: 'Peace Lily',
         scientific: 'Spathiphyllum',
         tags: ['removes_tvoc', 'humidifier'],
-        toxicity: true, 
-        light_needs: 'Low to Medium',
-        maintenance: 'Medium',
+        // Tidak tahan panas ekstrem
+        safety_limits: { min_hum: 30, max_temp: 28 }, 
+        water_freq: "Weekly (will droop when thirsty)",
         price: 'S$ 9.00',
         efficiency: 'Best VOC Fighter',
         image: 'assets/peace_lily.jpg',
@@ -51,9 +51,9 @@ const plantDatabase = [
         name: 'Areca Palm',
         scientific: 'Dypsis lutescens',
         tags: ['removes_co2', 'humidifier', 'removes_heat'],
-        toxicity: false,
-        light_needs: 'Bright, Indirect',
-        maintenance: 'Medium',
+        // UPDATED: Mati jika suhu > 32°C
+        safety_limits: { min_hum: 40, max_temp: 32 }, 
+        water_freq: "Weekly",
         price: 'S$ 30.00',
         efficiency: 'Highest O2 production',
         image: 'assets/areca_palm.jpg',
@@ -64,9 +64,9 @@ const plantDatabase = [
         name: 'Rubber Plant',
         scientific: 'Ficus elastica',
         tags: ['removes_co2', 'removes_heat', 'removes_tvoc'],
-        toxicity: true,
-        light_needs: 'Medium to Bright',
-        maintenance: 'Easy',
+        // Lebih tahan panas daripada Areca
+        safety_limits: { min_hum: 20, max_temp: 35 }, 
+        water_freq: "Weekly",
         price: 'S$ 15.30',
         efficiency: 'Absorbs Heat & Toxins',
         image: 'assets/rubber_plant.jpg',
@@ -77,25 +77,38 @@ const plantDatabase = [
         name: 'English Ivy',
         scientific: 'Hedera helix',
         tags: ['removes_mold', 'removes_tvoc'],
-        toxicity: true,
-        light_needs: 'Medium',
-        maintenance: 'Medium',
+        // Suka sejuk
+        safety_limits: { min_hum: 30, max_temp: 30 }, 
+        water_freq: "Weekly",
         price: 'S$ 12.00',
         efficiency: 'Mold Fighter',
         image: 'assets/english_ivy.jpg',
         shop_link: 'https://tokopedia.com/search?q=english+ivy'
+    },
+    { 
+        id: 'jade_plant', 
+        name: "Jade Plant", 
+        scientific: "Crassula ovata", 
+        tags: ['removes_tvoc'], 
+        // Kaktus/Sukulen: Tahan panas & kering
+        safety_limits: { min_hum: 0, max_temp: 38 }, 
+        water_freq: "Every 2 weeks",
+        price: 'S$ 10.00',
+        efficiency: 'Dry Air Survivor',
+        image: 'assets/jade_plant.jpg', 
+        shop_link: 'https://tokopedia.com/search?q=jade+plant'
     }
 ];
 
 // ==========================================
-// 🧭 NAVIGATION & UI LOGIC
+// 🧭 NAVIGATION
 // ==========================================
 
 function switchPage(pageId) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.getElementById('nav-' + pageId).classList.add('active');
-    
-    // Close sidebar on mobile when navigating
+    const desktopNav = document.getElementById('nav-' + pageId);
+    if(desktopNav) desktopNav.classList.add('active');
+
     if (window.innerWidth < 1024) {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -114,9 +127,15 @@ function switchPage(pageId) {
             targetPage.style.transform = 'translateY(0)';
         }, 50);
     }
+    
+    const mainContent = document.querySelector('main');
+    if(mainContent) mainContent.scrollTo(0,0);
+
     document.getElementById('page-title').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
+
     if(pageId === 'myplants') renderMyPlantsPage();
     if(pageId === 'careguide') renderCareGuidePage();
+    if(pageId === 'reminders') renderRemindersPage();
 }
 
 function toggleSidebar() {
@@ -134,27 +153,129 @@ function toggleSidebar() {
     }
 }
 
-function toggleSavePlant(plantId) {
-    const index = mySavedPlants.indexOf(plantId);
-    if (index > -1) mySavedPlants.splice(index, 1);
-    else mySavedPlants.push(plantId);
-    
-    const btn = document.getElementById(`btn-save-${plantId}`);
-    if(btn) updateSaveButton(btn, mySavedPlants.includes(plantId));
-    
-    if(document.getElementById('page-myplants').classList.contains('active')) renderMyPlantsPage();
-    if(document.getElementById('page-careguide').classList.contains('active')) renderCareGuidePage();
+// ==========================================
+// 🧠 ANALYSIS LOGIC (SAFETY CHECK KETAT)
+// ==========================================
+
+function analyzeManualData() {
+    const container = document.getElementById('recommendation-container');
+    container.innerHTML = `
+        <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-400 animate-pulse">
+            <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3 text-green-600"></i>
+            <p>Checking plant survival rates...</p>
+        </div>
+    `;
+    lucide.createIcons();
+
+    setTimeout(() => {
+        const temp = parseInt(document.getElementById('temp-slider').value);
+        const hum = parseInt(document.getElementById('hum-slider').value);
+        const tvoc = parseInt(document.getElementById('tvoc-slider').value);
+        const co2 = parseInt(document.getElementById('co2-slider').value);
+        const light = document.getElementById('pref-light').value;
+        const safety = document.getElementById('pref-safety').value;
+
+        // 1. Definisikan Masalah
+        let problems = [];
+        if(co2 > 1000) problems.push({ type: 'removes_co2', label: 'High CO₂ Solution' });
+        if(tvoc > 300) problems.push({ type: 'removes_tvoc', label: 'Toxin Filter' });
+        if(temp > 28) problems.push({ type: 'removes_heat', label: 'Cooling Plants' });
+        if(hum < 40) problems.push({ type: 'humidifier', label: 'Humidifiers' });
+        
+        if(problems.length === 0) problems.push({ type: 'general', label: 'Great for Maintenance' });
+
+        container.innerHTML = ''; 
+
+        let anyResult = false;
+
+        problems.forEach(problem => {
+            // FILTER 1: Cari kandidat yg cocok dengan masalah (misal: Cooling)
+            let candidates = plantDatabase.filter(p => {
+                if (safety === 'Yes' && p.toxicity === true) return false;
+                if (light === 'Low' && !p.light_needs.includes('Low')) return false;
+                if(problem.type === 'general') return true;
+                return p.tags.includes(problem.type);
+            });
+
+            // FILTER 2: SURVIVAL CHECK (PENTING!)
+            // Buang tanaman yang akan MATI di kondisi ini
+            let survivors = candidates.filter(p => {
+                if (!p.safety_limits) return true;
+                
+                // Cek Batas Atas Suhu
+                // Contoh: Jika user 33°C, Areca Palm (Max 32°C) akan return FALSE -> Dibuang
+                if (temp > p.safety_limits.max_temp) return false; 
+                
+                // Cek Batas Bawah Kelembaban
+                // Contoh: Jika humidity 20%, Boston Fern (Min 40%) akan return FALSE -> Dibuang
+                if (hum < p.safety_limits.min_hum) return false;
+                
+                return true;
+            });
+
+            if(survivors.length > 0) {
+                anyResult = true;
+                const sectionTitle = `
+                    <div class="col-span-full mt-4 mb-2">
+                        <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            ${problem.label}
+                        </h4>
+                    </div>`;
+                container.innerHTML += sectionTitle;
+                
+                survivors.forEach(plant => { 
+                    container.innerHTML += renderPlantCard(plant);
+                });
+            }
+        });
+
+        // Tampilkan Warning jika TIDAK ADA tanaman yang selamat
+        if(!anyResult) {
+            container.innerHTML = `
+                <div class="col-span-full text-center p-6 bg-red-50 rounded-xl border border-red-100">
+                    <p class="text-red-500 font-bold mb-1">Conditions too harsh for plants! ⚠️</p>
+                    <p class="text-xs text-red-400">
+                        Current: <b>${temp}°C</b> / <b>${hum}% Humidity</b>.<br>
+                        Most plants (like Areca Palm or Ferns) will die here.<br>
+                        👉 Try <strong>Snake Plant</strong> or <strong>Jade Plant</strong> (Survivors), or adjust your AC/Humidifier first.
+                    </p>
+                </div>`;
+        }
+
+        lucide.createIcons();
+    }, 600);
 }
 
-function updateSaveButton(btn, isSaved) {
-    if(isSaved) {
-        btn.innerHTML = `<i data-lucide="check" class="w-4 h-4 inline"></i> Added`;
-        btn.className = "w-full py-2 rounded-lg font-bold text-sm transition-colors bg-green-100 text-green-700";
-    } else {
-        btn.innerHTML = `<i data-lucide="plus" class="w-4 h-4 inline"></i> Add to My Plants`;
-        btn.className = "w-full py-2 rounded-lg font-bold text-sm transition-colors bg-gray-100 text-gray-600 hover:bg-green-600 hover:text-white";
-    }
-    lucide.createIcons();
+function renderPlantCard(plant) {
+    const isSaved = mySavedPlants.includes(plant.id);
+    const btnClass = isSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-green-600 hover:text-white';
+    
+    return `
+    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col h-full">
+        <a href="${plant.shop_link}" target="_blank" class="block">
+            <div class="relative overflow-hidden rounded-xl mb-4">
+                <img src="${plant.image}" class="w-full h-32 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
+                    <p class="text-white text-[10px] font-medium flex items-center gap-1">
+                        <i data-lucide="zap" class="w-3 h-3 text-yellow-400"></i> ${plant.efficiency}
+                    </p>
+                </div>
+            </div>
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <h4 class="font-bold text-gray-800 text-sm">${plant.name}</h4>
+                    <p class="text-[10px] text-gray-500 italic">${plant.scientific}</p>
+                </div>
+                <span class="text-green-600 font-bold text-xs bg-green-50 px-2 py-1 rounded-lg">${plant.price}</span>
+            </div>
+        </a>
+        <div class="mt-auto pt-3 border-t border-gray-50">
+            <button id="btn-save-${plant.id}" onclick="toggleSavePlant('${plant.id}')" class="w-full py-2 rounded-lg font-bold text-xs transition-colors ${btnClass}">
+                ${isSaved ? '<i data-lucide="check" class="w-3 h-3 inline"></i> Added' : '<i data-lucide="plus" class="w-3 h-3 inline"></i> Add to My Plants'}
+            </button>
+        </div>
+    </div>`;
 }
 
 // ==========================================
@@ -172,11 +293,10 @@ function updateGauges() {
     document.getElementById('val-tvoc').innerText = tvoc + " ppb";
     document.getElementById('val-co2').innerText = co2 + " ppm";
 
-    // Update Angka di bawah gauge
-    document.querySelector('#g-temp .gauge-value').innerText = temp;
-    document.querySelector('#g-hum .gauge-value').innerText = hum;
-    document.querySelector('#g-tvoc .gauge-value').innerText = tvoc;
-    document.querySelector('#g-co2 .gauge-value').innerText = co2;
+    const gTemp = document.querySelector('#g-temp .gauge-value'); if(gTemp) gTemp.innerText = temp;
+    const gHum = document.querySelector('#g-hum .gauge-value'); if(gHum) gHum.innerText = hum;
+    const gTvoc = document.querySelector('#g-tvoc .gauge-value'); if(gTvoc) gTvoc.innerText = tvoc;
+    const gCo2 = document.querySelector('#g-co2 .gauge-value'); if(gCo2) gCo2.innerText = co2;
 
     const cGreen = "#22c55e", cYellow = "#eab308", cRed = "#ef4444";
 
@@ -208,11 +328,11 @@ function updateAQI(t, h, tvoc, co2) {
     if (score < 50) { 
         statusText = "Poor"; colorClass = "text-red-500"; 
         if(barElement) barElement.className = "h-full bg-red-500 rounded-full transition-all duration-500";
-        message = "Attention! High pollution detected."; 
+        message = "High pollution detected."; 
     } else if (score < 80) { 
         statusText = "Moderate"; colorClass = "text-yellow-400"; 
         if(barElement) barElement.className = "h-full bg-yellow-400 rounded-full transition-all duration-500";
-        message = "Air quality is okay, but could be better."; 
+        message = "Air quality is okay."; 
     } else {
         if(barElement) barElement.className = "h-full bg-green-500 rounded-full transition-all duration-500";
     }
@@ -248,90 +368,6 @@ function updateSingleGauge(id, val, limit1, limit2, texts, colors) {
     if(statusText) { statusText.innerText = status; statusText.style.color = color; }
 }
 
-// ==========================================
-// 🧠 ANALYSIS LOGIC
-// ==========================================
-
-function analyzeManualData() {
-    const container = document.getElementById('recommendation-container');
-    container.innerHTML = `
-        <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-400 animate-pulse">
-            <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-3 text-green-600"></i>
-            <p>Analyzing plant matches...</p>
-        </div>
-    `;
-    lucide.createIcons();
-
-    setTimeout(() => {
-        const temp = parseInt(document.getElementById('temp-slider').value);
-        const hum = parseInt(document.getElementById('hum-slider').value);
-        const tvoc = parseInt(document.getElementById('tvoc-slider').value);
-        const co2 = parseInt(document.getElementById('co2-slider').value);
-        const light = document.getElementById('pref-light').value;
-        const safety = document.getElementById('pref-safety').value;
-
-        let filtered = plantDatabase.filter(plant => {
-            if (safety === 'Yes' && plant.toxicity === true) return false;
-            let score = 0;
-            if (temp > 28 && (plant.tags.includes('removes_heat') || plant.tags.includes('cooling'))) score += 2;
-            if (hum < 40 && plant.tags.includes('humidifier')) score += 3;
-            if (hum > 70 && plant.tags.includes('removes_mold')) score += 3;
-            if (tvoc > 300 && (plant.tags.includes('removes_tvoc'))) score += 3;
-            if (co2 > 1000 && (plant.tags.includes('removes_co2') || plant.tags.includes('cam_photosynthesis'))) score += 3;
-            if (light === 'Low' && plant.light_needs.includes('Low')) score += 1;
-            if (light === 'Bright' && plant.light_needs.includes('Bright')) score += 1;
-            plant.tempScore = score;
-            return score > 0;
-        });
-
-        filtered.sort((a, b) => b.tempScore - a.tempScore);
-        renderPlants(filtered.slice(0, 4)); 
-    }, 800);
-}
-
-function renderPlants(plants) {
-    const container = document.getElementById('recommendation-container');
-    container.innerHTML = ''; 
-
-    if(plants.length === 0) {
-        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-10">No specific match. Try adjusting sliders.</p>`;
-        return;
-    }
-
-    plants.forEach(plant => {
-        const isSaved = mySavedPlants.includes(plant.id);
-        const btnClass = isSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-green-600 hover:text-white';
-        const btnText = isSaved ? '<i data-lucide="check" class="w-4 h-4 inline"></i> Added' : '<i data-lucide="plus" class="w-4 h-4 inline"></i> Add to My Plants';
-
-        const card = `
-            <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col h-full">
-                <a href="${plant.shop_link}" target="_blank" class="block">
-                    <div class="relative overflow-hidden rounded-xl mb-4">
-                        <img src="${plant.image}" alt="${plant.name}" class="w-full h-48 object-cover transform group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8">
-                            <p class="text-white text-xs font-medium flex items-center gap-1">
-                                <i data-lucide="zap" class="w-3 h-3 text-yellow-400"></i> ${plant.efficiency}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <h4 class="font-bold text-gray-800 text-lg">${plant.name}</h4>
-                            <p class="text-xs text-gray-500 italic">${plant.scientific}</p>
-                        </div>
-                        <span class="text-green-600 font-bold text-sm bg-green-50 px-2 py-1 rounded-lg">${plant.price}</span>
-                    </div>
-                </a>
-                <div class="mt-auto pt-3 border-t border-gray-50">
-                    <button id="btn-save-${plant.id}" onclick="toggleSavePlant('${plant.id}')" class="w-full py-2 rounded-lg font-bold text-sm transition-colors ${btnClass}">${btnText}</button>
-                </div>
-            </div>
-        `;
-        container.innerHTML += card;
-    });
-    lucide.createIcons();
-}
-
 function askAIAboutCurrentStats() {
     const temp = document.getElementById('temp-slider').value;
     const hum = document.getElementById('hum-slider').value;
@@ -343,9 +379,87 @@ function askAIAboutCurrentStats() {
     const prompt = `My room stats: Temp ${temp}°C, Humidity ${hum}%, TVOC ${tvoc}ppb, CO2 ${co2}ppm. What plants do you recommend?`;
     
     const chatInput = document.getElementById('chat-input');
-    chatInput.value = prompt;
-    document.getElementById('chat-send-btn').click();
+    if(chatInput) {
+        chatInput.value = prompt;
+        document.getElementById('chat-send-btn').click();
+    }
 }
+
+// ==========================================
+// ⏰ REMINDERS & SAVED PLANTS
+// ==========================================
+
+function toggleSavePlant(plantId) {
+    const index = mySavedPlants.indexOf(plantId);
+    if (index > -1) mySavedPlants.splice(index, 1);
+    else mySavedPlants.push(plantId);
+    
+    const btn = document.getElementById(`btn-save-${plantId}`);
+    if(btn) updateSaveButton(btn, mySavedPlants.includes(plantId));
+    
+    const activePage = document.querySelector('.page-content.active');
+    if(activePage) {
+        if(activePage.id === 'page-myplants') renderMyPlantsPage();
+        if(activePage.id === 'page-careguide') renderCareGuidePage();
+        if(activePage.id === 'page-reminders') renderRemindersPage();
+    }
+}
+
+function renderRemindersPage() {
+    const container = document.getElementById('rm-list'); 
+    if(!container) return; 
+    
+    container.innerHTML = "";
+    
+    if(mySavedPlants.length === 0) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
+                    <i data-lucide="bell-off" class="w-8 h-8"></i>
+                </div>
+                <p class="text-gray-500 font-medium text-center">No plants tracked.<br>Add plants to see watering schedule.</p>
+                <button onclick="switchPage('dashboard')" class="mt-4 text-xs font-bold text-green-600 bg-green-50 px-4 py-2 rounded-lg hover:bg-green-100 transition">Find Plants</button>
+            </div>`;
+    } else {
+        mySavedPlants.forEach(id => {
+            const p = plantDatabase.find(x => x.id === id);
+            if(!p) return;
+            
+            container.innerHTML += `
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 mb-4 hover:shadow-md transition-all">
+                <div class="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-green-100">
+                    <img src="${p.image}" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-bold text-gray-800 text-sm">${p.name}</h4>
+                    <div class="text-xs text-blue-600 font-bold flex items-center gap-1 mt-1 bg-blue-50 w-fit px-2 py-1 rounded-md">
+                        <i data-lucide="droplets" class="w-3 h-3"></i> ${p.water_freq}
+                    </div>
+                </div>
+                <label class="relative cursor-pointer group">
+                    <input type="checkbox" class="peer sr-only">
+                    <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-300 peer-checked:bg-green-500 peer-checked:text-white transition-all group-hover:bg-gray-200">
+                        <i data-lucide="check" class="w-6 h-6"></i>
+                    </div>
+                </label>
+            </div>`;
+        });
+    }
+    lucide.createIcons();
+}
+
+function updateSaveButton(btn, isSaved) {
+    if(isSaved) {
+        btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 inline"></i> Added`;
+        btn.className = "w-full py-2 rounded-lg font-bold text-xs transition-colors bg-green-100 text-green-700";
+    } else {
+        btn.innerHTML = `<i data-lucide="plus" class="w-3 h-3 inline"></i> Add to My Plants`;
+        btn.className = "w-full py-2 rounded-lg font-bold text-xs transition-colors bg-gray-100 text-gray-600 hover:bg-green-600 hover:text-white";
+    }
+    lucide.createIcons();
+}
+
+// ... (renderMyPlantsPage & renderCareGuidePage tidak diubah) ...
 
 const vidaVerdeProducts = [
     { name: "Nature's Defender", desc: "Pest Control Spray", icon: "shield-check", color: "text-red-500", bg: "bg-red-50", link: "https://shopee.sg/Nature's-Defender-Garden-Pest-Control-Spray-all-natural-poison-free-for-plant-pests-and-insects-Vidaverde-300ml-i.481505002.10946631746" },
@@ -356,6 +470,7 @@ const vidaVerdeProducts = [
 
 function renderMyPlantsPage() {
     const container = document.getElementById('myplants-container');
+    if(!container) return;
     container.innerHTML = '';
     if(mySavedPlants.length === 0) {
         container.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
@@ -385,6 +500,7 @@ function renderMyPlantsPage() {
 
 function renderCareGuidePage() {
     const container = document.getElementById('careguide-container');
+    if(!container) return;
     container.innerHTML = '';
     if(mySavedPlants.length === 0) {
         container.innerHTML += `<div class="flex flex-col items-center justify-center py-10 bg-white rounded-3xl border border-dashed border-gray-300 mb-8"><i data-lucide="book" class="w-10 h-10 text-gray-300 mb-4"></i><p class="text-gray-400 font-medium">Add plants to see guides.</p></div>`;
@@ -398,7 +514,7 @@ function renderCareGuidePage() {
                     </div>
                     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="flex gap-4"><div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center shrink-0"><i data-lucide="sun" class="w-5 h-5 text-yellow-500"></i></div><div><h5 class="font-bold text-gray-800 text-sm">Light</h5><p class="text-sm text-gray-600">${plant.light_needs}</p></div></div>
-                        <div class="flex gap-4"><div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0"><i data-lucide="droplets" class="w-5 h-5 text-blue-500"></i></div><div><h5 class="font-bold text-gray-800 text-sm">Watering</h5><p class="text-sm text-gray-600">${plant.maintenance}</p></div></div>
+                        <div class="flex gap-4"><div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0"><i data-lucide="droplets" class="w-5 h-5 text-blue-500"></i></div><div><h5 class="font-bold text-gray-800 text-sm">Watering</h5><p class="text-sm text-gray-600">${plant.water_freq}</p></div></div>
                     </div>
                 </div>`;
             container.innerHTML += card;
