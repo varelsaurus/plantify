@@ -2,8 +2,166 @@
 // 🌿 PLANTIFY INTELLIGENCE ENGINE (script.js)
 // ==========================================
 
-const GROQ_API_KEY = ""; 
-let mySavedPlants = []; 
+const GROQ_API_KEY = "";
+let mySavedPlants = [];
+
+// ==========================================
+// 🌍 DATA MODE & LOCATION VARIABLES
+// ==========================================
+let currentDataMode = 'sensor'; // 'sensor' or 'location'
+let locationData = {
+    name: '',
+    country: '',
+    temp: 24,
+    humidity: 50,
+    co2: 450,  // Estimated from API or default
+    tvoc: 100  // Estimated based on location type
+};
+
+// Switch between sensor mode and location mode
+function switchDataMode(mode) {
+    currentDataMode = mode;
+
+    const btnSensor = document.getElementById('btn-sensor-mode');
+    const btnLocation = document.getElementById('btn-location-mode');
+    const sensorSection = document.getElementById('sensor-input-section');
+    const locationSection = document.getElementById('location-input-section');
+    const recommendationBadge = document.getElementById('recommendation-badge');
+
+    if (mode === 'sensor') {
+        // Activate sensor mode
+        btnSensor.className = 'flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all bg-green-600 text-white shadow-lg shadow-green-200';
+        btnLocation.className = 'flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all bg-gray-100 text-gray-600 hover:bg-gray-200';
+        sensorSection.classList.remove('hidden');
+        locationSection.classList.add('hidden');
+        if (recommendationBadge) recommendationBadge.textContent = 'Auto-Match';
+
+        // Reset to slider values
+        updateGauges();
+    } else {
+        // Activate location mode
+        btnLocation.className = 'flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-200';
+        btnSensor.className = 'flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all bg-gray-100 text-gray-600 hover:bg-gray-200';
+        sensorSection.classList.add('hidden');
+        locationSection.classList.remove('hidden');
+        if (recommendationBadge) recommendationBadge.textContent = 'Location-Based';
+    }
+
+    lucide.createIcons();
+}
+
+// Fetch location data from Open-Meteo API (Free, no API key required)
+async function fetchLocationData() {
+    const searchInput = document.getElementById('location-search');
+    const locationStatus = document.getElementById('location-status');
+    const locationName = document.getElementById('location-name');
+    const locationDetails = document.getElementById('location-details');
+    const btnSearch = document.getElementById('btn-search-location');
+
+    const query = searchInput.value.trim();
+    if (!query) {
+        alert('Please enter a city name');
+        return;
+    }
+
+    // Show loading state
+    btnSearch.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>';
+    btnSearch.disabled = true;
+    locationStatus.classList.remove('hidden');
+    locationName.textContent = 'Searching...';
+    locationDetails.textContent = 'Finding your location...';
+    lucide.createIcons();
+
+    try {
+        // Step 1: Geocoding - Get coordinates from city name
+        const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`);
+        const geoData = await geoResponse.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+            throw new Error('City not found. Please try another name.');
+        }
+
+        const location = geoData.results[0];
+        const { latitude, longitude, name, country, population } = location;
+
+        // Step 2: Get weather data from Open-Meteo
+        const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m&timezone=auto`);
+        const weatherData = await weatherResponse.json();
+
+        const temp = Math.round(weatherData.current.temperature_2m);
+        const humidity = Math.round(weatherData.current.relative_humidity_2m);
+
+        // Step 3: Estimate CO2 and TVOC based on location type
+        // Urban areas typically have higher pollution
+        const isUrban = population && population > 100000;
+        const estimatedCO2 = isUrban ? Math.round(450 + Math.random() * 200) : Math.round(400 + Math.random() * 100);
+        const estimatedTVOC = isUrban ? Math.round(150 + Math.random() * 200) : Math.round(50 + Math.random() * 100);
+
+        // Store location data
+        locationData = {
+            name: name,
+            country: country,
+            temp: temp,
+            humidity: humidity,
+            co2: estimatedCO2,
+            tvoc: estimatedTVOC,
+            isUrban: isUrban
+        };
+
+        // Update UI
+        locationName.textContent = `${name}, ${country}`;
+        locationDetails.textContent = `${temp}°C • ${humidity}% humidity • ${isUrban ? 'Urban' : 'Rural'} area`;
+        document.getElementById('location-source').textContent = isUrban ? 'Urban' : 'Rural';
+
+        // Update gauges with location data
+        updateGaugesWithLocationData();
+
+        // Run analysis with location data
+        analyzeManualData();
+
+    } catch (error) {
+        locationName.textContent = 'Error';
+        locationDetails.textContent = error.message || 'Failed to fetch data. Please try again.';
+        console.error('Location fetch error:', error);
+    } finally {
+        btnSearch.innerHTML = '<i data-lucide="search" class="w-4 h-4"></i>';
+        btnSearch.disabled = false;
+        lucide.createIcons();
+    }
+}
+
+// Update gauges with location-based data
+function updateGaugesWithLocationData() {
+    const { temp, humidity, co2, tvoc } = locationData;
+
+    // Update slider values (for consistency)
+    document.getElementById('temp-slider').value = temp;
+    document.getElementById('hum-slider').value = humidity;
+    document.getElementById('co2-slider').value = co2;
+    document.getElementById('tvoc-slider').value = tvoc;
+
+    // Update display values
+    document.getElementById('val-temp').innerText = temp + "°C";
+    document.getElementById('val-hum').innerText = humidity + "%";
+    document.getElementById('val-tvoc').innerText = tvoc + " ppb";
+    document.getElementById('val-co2').innerText = co2 + " ppm";
+
+    // Update gauges
+    updateGauges();
+}
+
+// Add Enter key support for location search
+document.addEventListener('DOMContentLoaded', () => {
+    const locationSearch = document.getElementById('location-search');
+    if (locationSearch) {
+        locationSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                fetchLocationData();
+            }
+        });
+    }
+});
 
 // 1. DATABASE TANAMAN (Updated: Areca Palm Max Temp 32°C)
 const plantDatabase = [
@@ -13,7 +171,7 @@ const plantDatabase = [
         scientific: 'Dracaena trifasciata',
         tags: ['removes_co2', 'low_light', 'cam_photosynthesis', 'bedroom_friendly', 'removes_tvoc'],
         // Snake plant sangat kuat (Tahan sampai 40C, Tahan kering)
-        safety_limits: { min_hum: 0, max_temp: 40 }, 
+        safety_limits: { min_hum: 0, max_temp: 40 },
         water_freq: "Every 2-3 weeks",
         price: 'S$ 11.00',
         efficiency: 'High CO2 removal',
@@ -24,9 +182,9 @@ const plantDatabase = [
         id: 'boston_fern',
         name: 'Boston Fern',
         scientific: 'Nephrolepis exaltata',
-        tags: ['humidifier', 'removes_tvoc'], 
+        tags: ['humidifier', 'removes_tvoc'],
         // Sangat sensitif kering. Mati jika humidity < 40%
-        safety_limits: { min_hum: 40, max_temp: 30 }, 
+        safety_limits: { min_hum: 40, max_temp: 30 },
         water_freq: "Twice weekly (Keep moist)",
         price: 'S$ 21.90',
         efficiency: 'Natural Humidifier',
@@ -39,7 +197,7 @@ const plantDatabase = [
         scientific: 'Spathiphyllum',
         tags: ['removes_tvoc', 'humidifier'],
         // Tidak tahan panas ekstrem
-        safety_limits: { min_hum: 30, max_temp: 28 }, 
+        safety_limits: { min_hum: 30, max_temp: 28 },
         water_freq: "Weekly (will droop when thirsty)",
         price: 'S$ 9.00',
         efficiency: 'Best VOC Fighter',
@@ -52,7 +210,7 @@ const plantDatabase = [
         scientific: 'Dypsis lutescens',
         tags: ['removes_co2', 'humidifier', 'removes_heat'],
         // UPDATED: Mati jika suhu > 32°C
-        safety_limits: { min_hum: 40, max_temp: 32 }, 
+        safety_limits: { min_hum: 40, max_temp: 32 },
         water_freq: "Weekly",
         price: 'S$ 30.00',
         efficiency: 'Highest O2 production',
@@ -65,7 +223,7 @@ const plantDatabase = [
         scientific: 'Ficus elastica',
         tags: ['removes_co2', 'removes_heat', 'removes_tvoc'],
         // Lebih tahan panas daripada Areca
-        safety_limits: { min_hum: 20, max_temp: 35 }, 
+        safety_limits: { min_hum: 20, max_temp: 35 },
         water_freq: "Weekly",
         price: 'S$ 15.30',
         efficiency: 'Absorbs Heat & Toxins',
@@ -78,24 +236,24 @@ const plantDatabase = [
         scientific: 'Hedera helix',
         tags: ['removes_mold', 'removes_tvoc'],
         // Suka sejuk
-        safety_limits: { min_hum: 30, max_temp: 30 }, 
+        safety_limits: { min_hum: 30, max_temp: 30 },
         water_freq: "Weekly",
         price: 'S$ 12.00',
         efficiency: 'Mold Fighter',
         image: 'assets/english_ivy.jpg',
         shop_link: 'https://tokopedia.com/search?q=english+ivy'
     },
-    { 
-        id: 'jade_plant', 
-        name: "Jade Plant", 
-        scientific: "Crassula ovata", 
-        tags: ['removes_tvoc'], 
+    {
+        id: 'jade_plant',
+        name: "Jade Plant",
+        scientific: "Crassula ovata",
+        tags: ['removes_tvoc'],
         // Kaktus/Sukulen: Tahan panas & kering
-        safety_limits: { min_hum: 0, max_temp: 38 }, 
+        safety_limits: { min_hum: 0, max_temp: 38 },
         water_freq: "Every 2 weeks",
         price: 'S$ 10.00',
         efficiency: 'Dry Air Survivor',
-        image: 'assets/jade_plant.jpg', 
+        image: 'assets/jade_plant.jpg',
         shop_link: 'https://tokopedia.com/search?q=jade+plant'
     }
 ];
@@ -107,7 +265,7 @@ const plantDatabase = [
 function switchPage(pageId) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     const desktopNav = document.getElementById('nav-' + pageId);
-    if(desktopNav) desktopNav.classList.add('active');
+    if (desktopNav) desktopNav.classList.add('active');
 
     if (window.innerWidth < 1024) {
         const sidebar = document.getElementById('sidebar');
@@ -118,7 +276,7 @@ function switchPage(pageId) {
 
     document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
     const targetPage = document.getElementById('page-' + pageId);
-    if(targetPage) {
+    if (targetPage) {
         targetPage.style.opacity = '0';
         targetPage.style.transform = 'translateY(10px)';
         setTimeout(() => {
@@ -127,21 +285,21 @@ function switchPage(pageId) {
             targetPage.style.transform = 'translateY(0)';
         }, 50);
     }
-    
+
     const mainContent = document.querySelector('main');
-    if(mainContent) mainContent.scrollTo(0,0);
+    if (mainContent) mainContent.scrollTo(0, 0);
 
     document.getElementById('page-title').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
 
-    if(pageId === 'myplants') renderMyPlantsPage();
-    if(pageId === 'careguide') renderCareGuidePage();
-    if(pageId === 'reminders') renderRemindersPage();
+    if (pageId === 'myplants') renderMyPlantsPage();
+    if (pageId === 'careguide') renderCareGuidePage();
+    if (pageId === 'reminders') renderRemindersPage();
 }
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
-    
+
     if (sidebar.classList.contains('-translate-x-full')) {
         sidebar.classList.remove('-translate-x-full');
         overlay.classList.remove('hidden');
@@ -177,14 +335,14 @@ function analyzeManualData() {
 
         // 1. Definisikan Masalah
         let problems = [];
-        if(co2 > 1000) problems.push({ type: 'removes_co2', label: 'High CO₂ Solution' });
-        if(tvoc > 300) problems.push({ type: 'removes_tvoc', label: 'Toxin Filter' });
-        if(temp > 28) problems.push({ type: 'removes_heat', label: 'Cooling Plants' });
-        if(hum < 40) problems.push({ type: 'humidifier', label: 'Humidifiers' });
-        
-        if(problems.length === 0) problems.push({ type: 'general', label: 'Great for Maintenance' });
+        if (co2 > 1000) problems.push({ type: 'removes_co2', label: 'High CO₂ Solution' });
+        if (tvoc > 300) problems.push({ type: 'removes_tvoc', label: 'Toxin Filter' });
+        if (temp > 28) problems.push({ type: 'removes_heat', label: 'Cooling Plants' });
+        if (hum < 40) problems.push({ type: 'humidifier', label: 'Humidifiers' });
 
-        container.innerHTML = ''; 
+        if (problems.length === 0) problems.push({ type: 'general', label: 'Great for Maintenance' });
+
+        container.innerHTML = '';
 
         let anyResult = false;
 
@@ -193,7 +351,7 @@ function analyzeManualData() {
             let candidates = plantDatabase.filter(p => {
                 if (safety === 'Yes' && p.toxicity === true) return false;
                 if (light === 'Low' && !p.light_needs.includes('Low')) return false;
-                if(problem.type === 'general') return true;
+                if (problem.type === 'general') return true;
                 return p.tags.includes(problem.type);
             });
 
@@ -201,19 +359,19 @@ function analyzeManualData() {
             // Buang tanaman yang akan MATI di kondisi ini
             let survivors = candidates.filter(p => {
                 if (!p.safety_limits) return true;
-                
+
                 // Cek Batas Atas Suhu
                 // Contoh: Jika user 33°C, Areca Palm (Max 32°C) akan return FALSE -> Dibuang
-                if (temp > p.safety_limits.max_temp) return false; 
-                
+                if (temp > p.safety_limits.max_temp) return false;
+
                 // Cek Batas Bawah Kelembaban
                 // Contoh: Jika humidity 20%, Boston Fern (Min 40%) akan return FALSE -> Dibuang
                 if (hum < p.safety_limits.min_hum) return false;
-                
+
                 return true;
             });
 
-            if(survivors.length > 0) {
+            if (survivors.length > 0) {
                 anyResult = true;
                 const sectionTitle = `
                     <div class="col-span-full mt-4 mb-2">
@@ -223,15 +381,15 @@ function analyzeManualData() {
                         </h4>
                     </div>`;
                 container.innerHTML += sectionTitle;
-                
-                survivors.forEach(plant => { 
+
+                survivors.forEach(plant => {
                     container.innerHTML += renderPlantCard(plant);
                 });
             }
         });
 
         // Tampilkan Warning jika TIDAK ADA tanaman yang selamat
-        if(!anyResult) {
+        if (!anyResult) {
             container.innerHTML = `
                 <div class="col-span-full text-center p-6 bg-red-50 rounded-xl border border-red-100">
                     <p class="text-red-500 font-bold mb-1">Conditions too harsh for plants! ⚠️</p>
@@ -250,7 +408,7 @@ function analyzeManualData() {
 function renderPlantCard(plant) {
     const isSaved = mySavedPlants.includes(plant.id);
     const btnClass = isSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-green-600 hover:text-white';
-    
+
     return `
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col h-full">
         <a href="${plant.shop_link}" target="_blank" class="block">
@@ -293,25 +451,25 @@ function updateGauges() {
     document.getElementById('val-tvoc').innerText = tvoc + " ppb";
     document.getElementById('val-co2').innerText = co2 + " ppm";
 
-    const gTemp = document.querySelector('#g-temp .gauge-value'); if(gTemp) gTemp.innerText = temp;
-    const gHum = document.querySelector('#g-hum .gauge-value'); if(gHum) gHum.innerText = hum;
-    const gTvoc = document.querySelector('#g-tvoc .gauge-value'); if(gTvoc) gTvoc.innerText = tvoc;
-    const gCo2 = document.querySelector('#g-co2 .gauge-value'); if(gCo2) gCo2.innerText = co2;
+    const gTemp = document.querySelector('#g-temp .gauge-value'); if (gTemp) gTemp.innerText = temp;
+    const gHum = document.querySelector('#g-hum .gauge-value'); if (gHum) gHum.innerText = hum;
+    const gTvoc = document.querySelector('#g-tvoc .gauge-value'); if (gTvoc) gTvoc.innerText = tvoc;
+    const gCo2 = document.querySelector('#g-co2 .gauge-value'); if (gCo2) gCo2.innerText = co2;
 
     const cGreen = "#22c55e", cYellow = "#eab308", cRed = "#ef4444";
 
-    updateSingleGauge('temp', temp, 18, 28, ['Cool', 'Good', 'Hot'], [cYellow, cGreen, cRed]); 
-    updateSingleGauge('hum', hum, 30, 60, ['Dry', 'Ideal', 'Damp'], [cRed, cGreen, cRed]); 
+    updateSingleGauge('temp', temp, 18, 28, ['Cool', 'Good', 'Hot'], [cYellow, cGreen, cRed]);
+    updateSingleGauge('hum', hum, 30, 60, ['Dry', 'Ideal', 'Damp'], [cRed, cGreen, cRed]);
     updateSingleGauge('tvoc', tvoc, 200, 600, ['Safe', 'Mod', 'High'], [cGreen, cYellow, cRed]);
     updateSingleGauge('co2', co2, 800, 1500, ['Fresh', 'Stuffy', 'Poor'], [cGreen, cYellow, cRed]);
-    
+
     updateAQI(temp, hum, tvoc, co2);
 }
 
 function updateAQI(t, h, tvoc, co2) {
-    let penalty = ((tvoc/1000)*30) + ((co2/2000)*30);
-    if(t > 30 || t < 18) penalty += 10;
-    if(h < 30 || h > 70) penalty += 10;
+    let penalty = ((tvoc / 1000) * 30) + ((co2 / 2000) * 30);
+    if (t > 30 || t < 18) penalty += 10;
+    if (h < 30 || h > 70) penalty += 10;
 
     let score = Math.round(100 - penalty);
     if (score < 0) score = 0;
@@ -321,24 +479,24 @@ function updateAQI(t, h, tvoc, co2) {
     const barElement = document.getElementById('aqi-bar');
     const msgElement = document.getElementById('aqi-msg');
 
-    if(scoreElement) scoreElement.innerText = score;
-    if(barElement) barElement.style.width = score + "%";
+    if (scoreElement) scoreElement.innerText = score;
+    if (barElement) barElement.style.width = score + "%";
 
     let statusText = "Excellent", colorClass = "text-green-400", message = "Air is clean.";
-    if (score < 50) { 
-        statusText = "Poor"; colorClass = "text-red-500"; 
-        if(barElement) barElement.className = "h-full bg-red-500 rounded-full transition-all duration-500";
-        message = "High pollution detected."; 
-    } else if (score < 80) { 
-        statusText = "Moderate"; colorClass = "text-yellow-400"; 
-        if(barElement) barElement.className = "h-full bg-yellow-400 rounded-full transition-all duration-500";
-        message = "Air quality is okay."; 
+    if (score < 50) {
+        statusText = "Poor"; colorClass = "text-red-500";
+        if (barElement) barElement.className = "h-full bg-red-500 rounded-full transition-all duration-500";
+        message = "High pollution detected.";
+    } else if (score < 80) {
+        statusText = "Moderate"; colorClass = "text-yellow-400";
+        if (barElement) barElement.className = "h-full bg-yellow-400 rounded-full transition-all duration-500";
+        message = "Air quality is okay.";
     } else {
-        if(barElement) barElement.className = "h-full bg-green-500 rounded-full transition-all duration-500";
+        if (barElement) barElement.className = "h-full bg-green-500 rounded-full transition-all duration-500";
     }
 
-    if(statusElement) { statusElement.innerText = statusText; statusElement.className = `font-medium mb-2 ${colorClass}`; }
-    if(msgElement) msgElement.innerText = message;
+    if (statusElement) { statusElement.innerText = statusText; statusElement.className = `font-medium mb-2 ${colorClass}`; }
+    if (msgElement) msgElement.innerText = message;
 }
 
 function updateSingleGauge(id, val, limit1, limit2, texts, colors) {
@@ -354,18 +512,18 @@ function updateSingleGauge(id, val, limit1, limit2, texts, colors) {
         color = colors[1]; status = texts[1]; deg = -30 + ((val - limit1) / (limit2 - limit1)) * 60;
     } else {
         color = colors[2]; status = texts[2]; deg = 30 + ((val - limit2) / limit2) * 60;
-        if(deg > 90) deg = 90;
+        if (deg > 90) deg = 90;
     }
 
-    if(id === 'hum') { 
-        if(val < 30) { color = colors[0]; status = texts[0]; deg = -90 + (val/30)*60; }
-        else if(val <= 60) { color = colors[1]; status = texts[1]; deg = 0; }
+    if (id === 'hum') {
+        if (val < 30) { color = colors[0]; status = texts[0]; deg = -90 + (val / 30) * 60; }
+        else if (val <= 60) { color = colors[1]; status = texts[1]; deg = 0; }
         else { color = colors[2]; status = texts[2]; deg = 45; }
     }
 
-    if(needle) needle.style.transform = `rotate(${deg}deg)`;
-    if(arc) arc.style.background = `conic-gradient(${colors[0]} 0deg 60deg, ${colors[1]} 60deg 120deg, ${colors[2]} 120deg 180deg, transparent 180deg)`;
-    if(statusText) { statusText.innerText = status; statusText.style.color = color; }
+    if (needle) needle.style.transform = `rotate(${deg}deg)`;
+    if (arc) arc.style.background = `conic-gradient(${colors[0]} 0deg 60deg, ${colors[1]} 60deg 120deg, ${colors[2]} 120deg 180deg, transparent 180deg)`;
+    if (statusText) { statusText.innerText = status; statusText.style.color = color; }
 }
 
 function askAIAboutCurrentStats() {
@@ -377,9 +535,9 @@ function askAIAboutCurrentStats() {
     if (!isChatOpen) toggleChat();
 
     const prompt = `My room stats: Temp ${temp}°C, Humidity ${hum}%, TVOC ${tvoc}ppb, CO2 ${co2}ppm. What plants do you recommend?`;
-    
+
     const chatInput = document.getElementById('chat-input');
-    if(chatInput) {
+    if (chatInput) {
         chatInput.value = prompt;
         document.getElementById('chat-send-btn').click();
     }
@@ -393,25 +551,25 @@ function toggleSavePlant(plantId) {
     const index = mySavedPlants.indexOf(plantId);
     if (index > -1) mySavedPlants.splice(index, 1);
     else mySavedPlants.push(plantId);
-    
+
     const btn = document.getElementById(`btn-save-${plantId}`);
-    if(btn) updateSaveButton(btn, mySavedPlants.includes(plantId));
-    
+    if (btn) updateSaveButton(btn, mySavedPlants.includes(plantId));
+
     const activePage = document.querySelector('.page-content.active');
-    if(activePage) {
-        if(activePage.id === 'page-myplants') renderMyPlantsPage();
-        if(activePage.id === 'page-careguide') renderCareGuidePage();
-        if(activePage.id === 'page-reminders') renderRemindersPage();
+    if (activePage) {
+        if (activePage.id === 'page-myplants') renderMyPlantsPage();
+        if (activePage.id === 'page-careguide') renderCareGuidePage();
+        if (activePage.id === 'page-reminders') renderRemindersPage();
     }
 }
 
 function renderRemindersPage() {
-    const container = document.getElementById('rm-list'); 
-    if(!container) return; 
-    
+    const container = document.getElementById('rm-list');
+    if (!container) return;
+
     container.innerHTML = "";
-    
-    if(mySavedPlants.length === 0) {
+
+    if (mySavedPlants.length === 0) {
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center py-20">
                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
@@ -423,8 +581,8 @@ function renderRemindersPage() {
     } else {
         mySavedPlants.forEach(id => {
             const p = plantDatabase.find(x => x.id === id);
-            if(!p) return;
-            
+            if (!p) return;
+
             container.innerHTML += `
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 mb-4 hover:shadow-md transition-all">
                 <div class="w-14 h-14 bg-green-50 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-green-100">
@@ -449,7 +607,7 @@ function renderRemindersPage() {
 }
 
 function updateSaveButton(btn, isSaved) {
-    if(isSaved) {
+    if (isSaved) {
         btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 inline"></i> Added`;
         btn.className = "w-full py-2 rounded-lg font-bold text-xs transition-colors bg-green-100 text-green-700";
     } else {
@@ -470,9 +628,9 @@ const vidaVerdeProducts = [
 
 function renderMyPlantsPage() {
     const container = document.getElementById('myplants-container');
-    if(!container) return;
+    if (!container) return;
     container.innerHTML = '';
-    if(mySavedPlants.length === 0) {
+    if (mySavedPlants.length === 0) {
         container.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
                 <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4"><i data-lucide="sprout" class="w-10 h-10 text-green-300"></i></div>
                 <h3 class="font-[Poppins] text-xl font-bold text-gray-700">Your jungle is empty!</h3>
@@ -483,7 +641,7 @@ function renderMyPlantsPage() {
     }
     mySavedPlants.forEach(id => {
         const plant = plantDatabase.find(p => p.id === id);
-        if(!plant) return;
+        if (!plant) return;
         const card = `<div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 relative group">
                 <div class="w-24 h-24 rounded-xl overflow-hidden shrink-0"><img src="${plant.image}" class="w-full h-full object-cover"></div>
                 <div class="flex-1 flex flex-col justify-center">
@@ -500,14 +658,14 @@ function renderMyPlantsPage() {
 
 function renderCareGuidePage() {
     const container = document.getElementById('careguide-container');
-    if(!container) return;
+    if (!container) return;
     container.innerHTML = '';
-    if(mySavedPlants.length === 0) {
+    if (mySavedPlants.length === 0) {
         container.innerHTML += `<div class="flex flex-col items-center justify-center py-10 bg-white rounded-3xl border border-dashed border-gray-300 mb-8"><i data-lucide="book" class="w-10 h-10 text-gray-300 mb-4"></i><p class="text-gray-400 font-medium">Add plants to see guides.</p></div>`;
     } else {
         mySavedPlants.forEach(id => {
             const plant = plantDatabase.find(p => p.id === id);
-            if(!plant) return;
+            if (!plant) return;
             const card = `<div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 mb-8">
                     <div class="h-40 bg-cover bg-center relative" style="background-image: url('${plant.image}');">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6"><div><h3 class="text-2xl font-bold text-white">${plant.name}</h3></div></div>
@@ -536,16 +694,16 @@ function renderCareGuidePage() {
 
 // 6. INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
-    analyzeManualData(); 
-    updateGauges(); 
+    analyzeManualData();
+    updateGauges();
 
     const inputs = ['temp-slider', 'hum-slider', 'tvoc-slider', 'co2-slider', 'pref-light', 'pref-safety'];
-    
+
     inputs.forEach(id => {
         const el = document.getElementById(id);
-        if(el) {
+        if (el) {
             el.addEventListener('input', () => {
-                updateGauges(); 
+                updateGauges();
             });
         }
     });
