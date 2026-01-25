@@ -12,6 +12,8 @@ const plantDatabase = [
         // Snake plant sangat kuat (Tahan sampai 40C, Tahan kering)
         safety_limits: { min_hum: 0, max_temp: 40 },
         water_freq: "Every 2-3 weeks",
+        light_needs: "Low to Bright Indirect",
+        maintenance: "Low",
         price: 'S$ 11.00',
         efficiency: 'High CO2 removal',
         image: 'assets/snake_plant.jpg',
@@ -25,6 +27,8 @@ const plantDatabase = [
         // Sangat sensitif kering. Mati jika humidity < 40%
         safety_limits: { min_hum: 40, max_temp: 30 },
         water_freq: "Twice weekly (Keep moist)",
+        light_needs: "Bright Indirect",
+        maintenance: "High",
         price: 'S$ 21.90',
         efficiency: 'Natural Humidifier',
         image: 'assets/boston_fern.jpg',
@@ -38,6 +42,8 @@ const plantDatabase = [
         // Tidak tahan panas ekstrem
         safety_limits: { min_hum: 30, max_temp: 28 },
         water_freq: "Weekly (will droop when thirsty)",
+        light_needs: "Low to Medium",
+        maintenance: "Low",
         price: 'S$ 9.00',
         efficiency: 'Best VOC Fighter',
         image: 'assets/peace_lily.jpg',
@@ -51,6 +57,8 @@ const plantDatabase = [
         // UPDATED: Mati jika suhu > 32°C
         safety_limits: { min_hum: 40, max_temp: 32 },
         water_freq: "Weekly",
+        light_needs: "Bright Indirect",
+        maintenance: "Medium",
         price: 'S$ 30.00',
         efficiency: 'Highest O2 production',
         image: 'assets/areca_palm.jpg',
@@ -64,6 +72,8 @@ const plantDatabase = [
         // Lebih tahan panas daripada Areca
         safety_limits: { min_hum: 20, max_temp: 35 },
         water_freq: "Weekly",
+        light_needs: "Low to Bright",
+        maintenance: "Low",
         price: 'S$ 15.30',
         efficiency: 'Absorbs Heat & Toxins',
         image: 'assets/rubber_plant.jpg',
@@ -77,6 +87,8 @@ const plantDatabase = [
         // Suka sejuk
         safety_limits: { min_hum: 30, max_temp: 30 },
         water_freq: "Weekly",
+        light_needs: "Low to Bright Indirect",
+        maintenance: "Medium",
         price: 'S$ 12.00',
         efficiency: 'Mold Fighter',
         image: 'assets/english_ivy.jpg',
@@ -90,6 +102,8 @@ const plantDatabase = [
         // Kaktus/Sukulen: Tahan panas & kering
         safety_limits: { min_hum: 0, max_temp: 38 },
         water_freq: "Every 2 weeks",
+        light_needs: "Bright Direct",
+        maintenance: "Low",
         price: 'S$ 10.00',
         efficiency: 'Dry Air Survivor',
         image: 'assets/jade_plant.jpg',

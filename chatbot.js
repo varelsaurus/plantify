@@ -9,15 +9,15 @@ let isBotThinking = false;
 function toggleChat() {
     const window = document.getElementById('chat-window');
     const btn = document.querySelector('button[onclick="toggleChat()"]');
-    
+
     isChatOpen = !isChatOpen;
-    
+
     if (isChatOpen) {
         window.classList.add('active');
         btn.classList.add('open');
         setTimeout(() => {
             const input = document.getElementById('chat-input');
-            if(input) input.focus();
+            if (input) input.focus();
         }, 300);
     } else {
         window.classList.remove('active');
@@ -36,11 +36,11 @@ async function handleChatSubmit(e) {
     // Tampilkan Pesan User
     appendMessage('user', message);
     input.value = '';
-    
+
     setLoadingState(true);
 
     await fetchBotResponse(message);
-    
+
     setLoadingState(false);
 }
 
@@ -48,7 +48,7 @@ async function handleChatSubmit(e) {
 function appendMessage(sender, text) {
     const container = document.getElementById('chat-messages');
     const div = document.createElement('div');
-    
+
     if (sender === 'user') {
         div.className = "flex gap-3 justify-end";
         div.innerHTML = `
@@ -58,7 +58,7 @@ function appendMessage(sender, text) {
         `;
     } else {
         div.className = "flex gap-3";
-        
+
         // --- PERBAIKAN ERROR "Marked is not defined" ---
         // Kita cek dulu: apakah library 'marked' ada?
         // Kalau ada, pakai format rapi. Kalau tidak, pakai text biasa.
@@ -86,8 +86,8 @@ function appendMessage(sender, text) {
 
 // 4. Integrasi API Groq
 async function fetchBotResponse(userMessage) {
-    const plantContext = (typeof plantDatabase !== 'undefined') 
-        ? plantDatabase.map(p => `${p.name} (Needs: ${p.light_needs}, Water: ${p.maintenance})`).join(", ")
+    const plantContext = (typeof plantDatabase !== 'undefined')
+        ? plantDatabase.map(p => `${p.name} (Light: ${p.light_needs}, Water: ${p.maintenance})`).join(", ")
         : "No database connected.";
 
     const systemPrompt = `
@@ -99,9 +99,7 @@ async function fetchBotResponse(userMessage) {
     try {
         const loadingId = showTypingIndicator();
 
-        // PERUBAHAN DI SINI:
-        // Kita fetch ke endpoint lokal kita sendiri "/api/chat"
-        // Tidak perlu header Authorization di sini, karena browser tidak pegang key
+        // Use Vercel API route (handles CORS & keeps API key secure)
         const response = await fetch("/api/chat", {
             method: "POST",
             headers: {
@@ -128,8 +126,8 @@ async function fetchBotResponse(userMessage) {
     } catch (error) {
         console.error(error);
         const tempLoader = document.getElementById('temp-loading');
-        if(tempLoader) tempLoader.remove();
-        
+        if (tempLoader) tempLoader.remove();
+
         appendMessage('bot', "Oops! Server trouble. 🌱 Try again later.");
     }
 }
@@ -138,14 +136,14 @@ async function fetchBotResponse(userMessage) {
 function setLoadingState(isLoading) {
     isBotThinking = isLoading;
     const btn = document.getElementById('chat-send-btn');
-    if(btn) {
+    if (btn) {
         btn.disabled = isLoading;
-        if(isLoading) {
+        if (isLoading) {
             btn.classList.add('opacity-50');
         } else {
             btn.classList.remove('opacity-50');
             const input = document.getElementById('chat-input');
-            if(input) input.focus();
+            if (input) input.focus();
         }
     }
 }
@@ -172,5 +170,5 @@ function showTypingIndicator() {
 
 function removeTypingIndicator(id) {
     const el = document.getElementById('temp-loading');
-    if(el) el.remove();
+    if (el) el.remove();
 }

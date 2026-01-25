@@ -101,6 +101,31 @@ async function logoutUser() {
     }
 }
 
+// Forgot Password
+async function showForgotPassword() {
+    const email = document.getElementById('auth-email').value;
+
+    if (!email) {
+        showNotification('⚠️ Please enter your email first', 'error');
+        return;
+    }
+
+    try {
+        await window.auth.sendPasswordResetEmail(email);
+        showNotification('📧 Password reset email sent! Check your inbox.', 'success');
+        closeAuthModal();
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        let message = 'Failed to send reset email';
+        if (error.code === 'auth/user-not-found') {
+            message = 'No account found with this email';
+        } else if (error.code === 'auth/invalid-email') {
+            message = 'Please enter a valid email';
+        }
+        showNotification('❌ ' + message, 'error');
+    }
+}
+
 // ==========================================
 // 💾 FIRESTORE DATA FUNCTIONS
 // ==========================================

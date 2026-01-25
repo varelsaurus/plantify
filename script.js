@@ -198,7 +198,14 @@ function switchPage(pageId) {
     const mainContent = document.querySelector('main');
     if (mainContent) mainContent.scrollTo(0, 0);
 
-    document.getElementById('page-title').innerText = pageId.charAt(0).toUpperCase() + pageId.slice(1);
+    // Format page titles properly
+    const pageTitles = {
+        'dashboard': 'Dashboard',
+        'myplants': 'My Plants',
+        'careguide': 'Care Guide',
+        'reminders': 'Reminders'
+    };
+    document.getElementById('page-title').innerText = pageTitles[pageId] || pageId;
 
     if (pageId === 'myplants') renderMyPlantsPage();
     if (pageId === 'careguide') renderCareGuidePage();
