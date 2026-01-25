@@ -617,10 +617,21 @@ function askAIAboutCurrentStats() {
 // ⏰ REMINDERS & SAVED PLANTS
 // ==========================================
 
-function toggleSavePlant(plantId) {
-    const index = mySavedPlants.indexOf(plantId);
-    if (index > -1) mySavedPlants.splice(index, 1);
-    else mySavedPlants.push(plantId);
+async function toggleSavePlant(plantId) {
+    // Check if user is logged in (firebase.js sets window.currentUser)
+    if (window.currentUser) {
+        const index = mySavedPlants.indexOf(plantId);
+        if (index > -1) {
+            await removePlantFromFirestore(plantId);
+        } else {
+            await savePlantToFirestore(plantId);
+        }
+    } else {
+        // Guest mode (Session only)
+        const index = mySavedPlants.indexOf(plantId);
+        if (index > -1) mySavedPlants.splice(index, 1);
+        else mySavedPlants.push(plantId);
+    }
 
     const btn = document.getElementById(`btn-save-${plantId}`);
     if (btn) updateSaveButton(btn, mySavedPlants.includes(plantId));
