@@ -36,8 +36,9 @@ function switchDataMode(mode) {
         locationSection.classList.add('hidden');
         if (recommendationBadge) recommendationBadge.textContent = 'Auto-Match';
 
-        // Reset to slider values
+        // Reset to slider values and refresh recommendations
         updateGauges();
+        analyzeManualData(); // Re-analyze with sensor data (including TVOC)
     } else {
         // Activate location mode
         btnLocation.className = 'flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all bg-indigo-600 text-white shadow-lg shadow-indigo-200';
@@ -91,20 +92,18 @@ async function fetchLocationData() {
         const temp = Math.round(weatherData.current.temperature_2m);
         const humidity = Math.round(weatherData.current.relative_humidity_2m);
 
-        // Step 3: Estimate CO2 and TVOC based on location type
-        // Urban areas typically have higher pollution
+        // Step 3: Estimate CO2 based on location type (NO TVOC - not available from API)
+        // Urban areas typically have higher CO2
         const isUrban = population && population > 100000;
         const estimatedCO2 = isUrban ? Math.round(450 + Math.random() * 200) : Math.round(400 + Math.random() * 100);
-        const estimatedTVOC = isUrban ? Math.round(150 + Math.random() * 200) : Math.round(50 + Math.random() * 100);
 
-        // Store location data
+        // Store location data (NO TVOC in location mode!)
         locationData = {
             name: name,
             country: country,
             temp: temp,
             humidity: humidity,
             co2: estimatedCO2,
-            tvoc: estimatedTVOC,
             isUrban: isUrban
         };
 
@@ -113,11 +112,11 @@ async function fetchLocationData() {
         locationDetails.textContent = `${temp}°C • ${humidity}% humidity • ${isUrban ? 'Urban' : 'Rural'} area`;
         document.getElementById('location-source').textContent = isUrban ? 'Urban' : 'Rural';
 
-        // Update gauges with location data
+        // Update gauges with location data (without TVOC)
         updateGaugesWithLocationData();
 
-        // Run analysis with location data
-        analyzeManualData();
+        // Run LOCATION-BASED analysis (WITHOUT TVOC)
+        analyzeLocationData();
 
     } catch (error) {
         locationName.textContent = 'Error';
@@ -130,24 +129,24 @@ async function fetchLocationData() {
     }
 }
 
-// Update gauges with location-based data
+// Update gauges with location-based data (WITHOUT TVOC)
 function updateGaugesWithLocationData() {
-    const { temp, humidity, co2, tvoc } = locationData;
+    const { temp, humidity, co2 } = locationData;
 
     // Update slider values (for consistency)
     document.getElementById('temp-slider').value = temp;
     document.getElementById('hum-slider').value = humidity;
     document.getElementById('co2-slider').value = co2;
-    document.getElementById('tvoc-slider').value = tvoc;
+    // TVOC slider NOT updated - not available in location mode
 
     // Update display values
     document.getElementById('val-temp').innerText = temp + "°C";
     document.getElementById('val-hum').innerText = humidity + "%";
-    document.getElementById('val-tvoc').innerText = tvoc + " ppb";
     document.getElementById('val-co2').innerText = co2 + " ppm";
+    document.getElementById('val-tvoc').innerText = "N/A"; // Not available in location mode
 
-    // Update gauges
-    updateGauges();
+    // Update gauges (location mode - without TVOC)
+    updateGaugesLocationMode();
 }
 
 // Add Enter key support for location search
@@ -403,6 +402,167 @@ function analyzeManualData() {
 
         lucide.createIcons();
     }, 600);
+}
+
+// ==========================================
+// 🌍 LOCATION-BASED ANALYSIS (TANPA TVOC!)
+// Model ke-2: Rekomendasi berdasarkan Weather API
+// ==========================================
+
+function analyzeLocationData() {
+    const container = document.getElementById('recommendation-container');
+    container.innerHTML = `
+        <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-400 animate-pulse">
+            <i data-lucide="map-pin" class="w-8 h-8 animate-bounce mb-3 text-indigo-600"></i>
+            <p>Analyzing location data (no TVOC sensor)...</p>
+        </div>
+    `;
+    lucide.createIcons();
+
+    setTimeout(() => {
+        const { temp, humidity, co2 } = locationData;
+        const light = document.getElementById('pref-light').value;
+        const safety = document.getElementById('pref-safety').value;
+
+        // MODEL 2: Definisikan Masalah TANPA TVOC
+        let problems = [];
+        if (co2 > 1000) problems.push({ type: 'removes_co2', label: 'High CO₂ Solution' });
+        // TIDAK ADA TVOC CHECK! Karena gak ada sensor
+        if (temp > 28) problems.push({ type: 'removes_heat', label: 'Cooling Plants' });
+        if (humidity < 40) problems.push({ type: 'humidifier', label: 'Humidifiers' });
+
+        if (problems.length === 0) problems.push({ type: 'general', label: 'Great for Maintenance' });
+
+        container.innerHTML = '';
+
+        // Add info badge that TVOC is not considered
+        container.innerHTML += `
+            <div class="col-span-full mb-4">
+                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3">
+                    <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-indigo-700">Location-Based Mode</p>
+                        <p class="text-[10px] text-indigo-500">Recommendations based on Temperature, Humidity & CO₂ only. TVOC data not available.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        let anyResult = false;
+
+        problems.forEach(problem => {
+            // FILTER 1: Cari kandidat (TANPA filter TVOC)
+            let candidates = plantDatabase.filter(p => {
+                if (safety === 'Yes' && p.toxicity === true) return false;
+                if (light === 'Low' && p.light_needs && !p.light_needs.includes('Low')) return false;
+                if (problem.type === 'general') return true;
+                return p.tags.includes(problem.type);
+            });
+
+            // FILTER 2: SURVIVAL CHECK - Hanya temp & humidity
+            let survivors = candidates.filter(p => {
+                if (!p.safety_limits) return true;
+                if (temp > p.safety_limits.max_temp) return false;
+                if (humidity < p.safety_limits.min_hum) return false;
+                return true;
+            });
+
+            if (survivors.length > 0) {
+                anyResult = true;
+                const sectionTitle = `
+                    <div class="col-span-full mt-4 mb-2">
+                        <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                            ${problem.label}
+                        </h4>
+                    </div>`;
+                container.innerHTML += sectionTitle;
+
+                survivors.forEach(plant => {
+                    container.innerHTML += renderPlantCard(plant);
+                });
+            }
+        });
+
+        // Warning jika tidak ada tanaman yang cocok
+        if (!anyResult) {
+            container.innerHTML += `
+                <div class="col-span-full text-center p-6 bg-red-50 rounded-xl border border-red-100">
+                    <p class="text-red-500 font-bold mb-1">Conditions too harsh for plants! ⚠️</p>
+                    <p class="text-xs text-red-400">
+                        Current: <b>${temp}°C</b> / <b>${humidity}% Humidity</b>.<br>
+                        Most plants will struggle in these conditions.<br>
+                        👉 Try <strong>Snake Plant</strong> or <strong>Jade Plant</strong> (Survivors).
+                    </p>
+                </div>`;
+        }
+
+        // Update AQI for location mode (tanpa TVOC)
+        updateAQILocationMode(temp, humidity, co2);
+
+        lucide.createIcons();
+    }, 600);
+}
+
+// Update gauges for LOCATION MODE (tanpa TVOC)
+function updateGaugesLocationMode() {
+    const { temp, humidity, co2 } = locationData;
+
+    const cGreen = "#22c55e", cYellow = "#eab308", cRed = "#ef4444", cGray = "#9ca3af";
+
+    updateSingleGauge('temp', temp, 18, 28, ['Cool', 'Good', 'Hot'], [cYellow, cGreen, cRed]);
+    updateSingleGauge('hum', humidity, 30, 60, ['Dry', 'Ideal', 'Damp'], [cRed, cGreen, cRed]);
+    updateSingleGauge('co2', co2, 800, 1500, ['Fresh', 'Stuffy', 'Poor'], [cGreen, cYellow, cRed]);
+
+    // TVOC gauge - show as disabled/N/A
+    const tvocNeedle = document.querySelector('#g-tvoc .gauge-needle');
+    const tvocArc = document.querySelector('#g-tvoc .gauge-arc');
+    const tvocValue = document.querySelector('#g-tvoc .gauge-value');
+    const tvocStatus = document.querySelector('#g-tvoc ~ .status-text');
+
+    if (tvocNeedle) tvocNeedle.style.transform = 'rotate(0deg)';
+    if (tvocArc) tvocArc.style.background = `conic-gradient(${cGray} 0deg 180deg, transparent 180deg)`;
+    if (tvocValue) tvocValue.innerText = 'N/A';
+    if (tvocStatus) { tvocStatus.innerText = 'No Sensor'; tvocStatus.style.color = cGray; }
+
+    updateAQILocationMode(temp, humidity, co2);
+}
+
+// AQI calculation for LOCATION MODE (tanpa TVOC)
+function updateAQILocationMode(t, h, co2) {
+    // Hanya hitung dari CO2, temp, humidity - TANPA TVOC
+    let penalty = ((co2 / 2000) * 50); // CO2 lebih berpengaruh karena TVOC tidak ada
+    if (t > 30 || t < 18) penalty += 15;
+    if (h < 30 || h > 70) penalty += 15;
+
+    let score = Math.round(100 - penalty);
+    if (score < 0) score = 0;
+
+    const scoreElement = document.getElementById('aqi-score');
+    const statusElement = document.getElementById('aqi-status');
+    const barElement = document.getElementById('aqi-bar');
+    const msgElement = document.getElementById('aqi-msg');
+
+    if (scoreElement) scoreElement.innerText = score;
+    if (barElement) barElement.style.width = score + "%";
+
+    let statusText = "Excellent", colorClass = "text-green-400", message = "Air quality looks good based on weather data.";
+    if (score < 50) {
+        statusText = "Poor"; colorClass = "text-red-500";
+        if (barElement) barElement.className = "h-full bg-red-500 rounded-full transition-all duration-500";
+        message = "Conditions may be challenging for plants.";
+    } else if (score < 80) {
+        statusText = "Moderate"; colorClass = "text-yellow-400";
+        if (barElement) barElement.className = "h-full bg-yellow-400 rounded-full transition-all duration-500";
+        message = "Air quality is okay (TVOC not measured).";
+    } else {
+        if (barElement) barElement.className = "h-full bg-green-500 rounded-full transition-all duration-500";
+    }
+
+    if (statusElement) { statusElement.innerText = statusText; statusElement.className = `font-medium mb-2 ${colorClass}`; }
+    if (msgElement) msgElement.innerText = message + " (Location Mode)";
 }
 
 function renderPlantCard(plant) {
