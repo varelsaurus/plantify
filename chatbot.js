@@ -116,7 +116,11 @@ async function fetchBotResponse(userMessage) {
 
         removeTypingIndicator(loadingId);
 
-        if (!response.ok) throw new Error("API Error");
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("API Response Error:", response.status, errorData);
+            throw new Error(`API Error ${response.status}: ${JSON.stringify(errorData)}`);
+        }
 
         const data = await response.json();
         const botReply = data.choices[0].message.content;
@@ -124,7 +128,7 @@ async function fetchBotResponse(userMessage) {
         appendMessage('bot', botReply);
 
     } catch (error) {
-        console.error(error);
+        console.error("Full Error:", error);
         const tempLoader = document.getElementById('temp-loading');
         if (tempLoader) tempLoader.remove();
 

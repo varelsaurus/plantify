@@ -19,7 +19,10 @@ export default async function handler(req, res) {
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
-        return res.status(500).json({ error: 'API Key not configured on server' });
+        return res.status(500).json({ 
+            error: 'API Key not configured on server',
+            debug: 'GROQ_API_KEY environment variable is missing'
+        });
     }
 
     try {
@@ -44,13 +47,21 @@ export default async function handler(req, res) {
         // 5. Kirim balasan balik ke Frontend
         if (!response.ok) {
             console.error("Groq API Error:", data);
-            return res.status(response.status).json({ error: data.error || 'Groq API Error' });
+            return res.status(response.status).json({ 
+                error: data.error?.message || 'Groq API Error',
+                groq_status: response.status,
+                groq_error: data.error || data,
+                debug: 'Error from Groq API'
+            });
         }
 
         res.status(200).json(data);
 
     } catch (error) {
         console.error("Server Error:", error);
-        res.status(500).json({ error: 'Internal Server Error: ' + error.message });
+        res.status(500).json({ 
+            error: 'Internal Server Error: ' + error.message,
+            debug: 'Exception in serverless function'
+        });
     }
 }
