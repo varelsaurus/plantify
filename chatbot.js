@@ -176,3 +176,44 @@ function removeTypingIndicator(id) {
     const el = document.getElementById('temp-loading');
     if (el) el.remove();
 }
+
+// ==========================================
+// 🎉 WELCOME POPUP FUNCTIONS (Auto-popup di tengah)
+// ==========================================
+
+// Buka welcome popup di tengah layar
+function openWelcomePopup() {
+    const popup = document.getElementById('welcome-popup');
+    if (popup) {
+        popup.classList.add('active');
+        // Refresh Lucide icons di dalam modal
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
+// Tutup welcome popup
+function closeWelcomePopup() {
+    const popup = document.getElementById('welcome-popup');
+    if (popup) {
+        popup.classList.remove('active');
+    }
+}
+
+// Buka chat dari popup (tutup popup, lalu buka chat window)
+function openChatFromPopup() {
+    closeWelcomePopup();
+
+    // Delay sedikit untuk smooth transition
+    setTimeout(() => {
+        if (!isChatOpen) {
+            toggleChat();
+        }
+    }, 200);
+}
+
+// 🎉 Auto-popup saat halaman dibuka (di tengah layar)
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        openWelcomePopup();
+    }, 1500); // Delay 1.5 detik setelah halaman load
+});

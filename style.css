@@ -201,3 +201,30 @@ button.open i[data-lucide="x"] {
 .animate-slide-down {
     animation: slide-down 0.3s ease-out forwards;
 }
+
+/* ==========================================
+   🎉 WELCOME POPUP MODAL STYLES
+   ========================================== */
+
+#welcome-popup.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#welcome-popup.active #welcome-popup-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+@keyframes gentle-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+#welcome-popup-content .animate-bounce {
+    animation: gentle-bounce 2s ease-in-out infinite;
+}
