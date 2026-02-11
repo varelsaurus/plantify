@@ -9,6 +9,7 @@ let mySavedPlants = [];
 // 🌍 DATA MODE & LOCATION VARIABLES
 // ==========================================
 let currentDataMode = 'sensor'; // 'sensor' or 'location'
+let currentPlaceType = 'home'; // 'home', 'office', 'school', 'healthcare', 'other'
 let locationData = {
     name: '',
     country: '',
@@ -228,7 +229,7 @@ function toggleSidebar() {
 }
 
 // ==========================================
-// 🧠 ANALYSIS LOGIC (SAFETY CHECK KETAT)
+// 🧠 ANALYSIS LOGIC (SAFETY CHECK + OTHER SURVIVORS)
 // ==========================================
 
 function analyzeManualData() {
@@ -249,69 +250,114 @@ function analyzeManualData() {
         const light = document.getElementById('pref-light').value;
         const safety = document.getElementById('pref-safety').value;
 
-        // 1. Definisikan Masalah
+        // 1. Detect problems
         let problems = [];
-        if (co2 > 1000) problems.push({ type: 'removes_co2', label: 'High CO₂ Solution' });
-        if (tvoc > 300) problems.push({ type: 'removes_tvoc', label: 'Toxin Filter' });
-        if (temp > 28) problems.push({ type: 'removes_heat', label: 'Cooling Plants' });
-        if (hum < 40) problems.push({ type: 'humidifier', label: 'Humidifiers' });
+        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '🔬 High CO₂ Solution' });
+        if (tvoc > 300) problems.push({ type: 'removes_tvoc', label: '🧪 Toxin Filter' });
+        if (temp > 28) problems.push({ type: 'removes_heat', label: '❄️ Cooling Plants' });
+        if (hum < 40) problems.push({ type: 'humidifier', label: '💧 Humidifiers' });
 
-        if (problems.length === 0) problems.push({ type: 'general', label: 'Great for Maintenance' });
+        // 2. Get ALL surviving plants (regardless of problem matching)
+        let allSurvivors = plantDatabase.filter(p => {
+            if (safety === 'Yes' && p.toxicity === true) return false;
+            if (light === 'Low' && p.light_needs && !p.light_needs.includes('Low')) return false;
+            if (!p.safety_limits) return true;
+            if (temp > p.safety_limits.max_temp) return false;
+            if (hum < p.safety_limits.min_hum) return false;
+            return true;
+        });
 
         container.innerHTML = '';
 
+        // 3. Show environment summary
+        const envClass = problems.length > 0 ? 'bg-amber-50 border-amber-100' : 'bg-green-50 border-green-100';
+        const envIcon = problems.length > 0 ? 'alert-triangle' : 'check-circle';
+        const envColor = problems.length > 0 ? 'text-amber-600' : 'text-green-600';
+        container.innerHTML += `
+            <div class="col-span-full mb-2">
+                <div class="${envClass} border rounded-xl p-3 flex items-center gap-3">
+                    <i data-lucide="${envIcon}" class="w-5 h-5 ${envColor} shrink-0"></i>
+                    <div>
+                        <p class="text-xs font-bold text-gray-700">${temp}°C · ${hum}% Humidity · TVOC ${tvoc}ppb · CO₂ ${co2}ppm</p>
+                        <p class="text-[10px] text-gray-500">${allSurvivors.length} of ${plantDatabase.length} plants can survive · ${problems.length > 0 ? problems.length + ' issue(s) detected' : 'Conditions are ideal'}</p>
+                    </div>
+                </div>
+            </div>`;
+
+        let recommendedIds = new Set();
         let anyResult = false;
 
-        problems.forEach(problem => {
-            // FILTER 1: Cari kandidat yg cocok dengan masalah (misal: Cooling)
-            let candidates = plantDatabase.filter(p => {
-                if (safety === 'Yes' && p.toxicity === true) return false;
-                if (light === 'Low' && !p.light_needs.includes('Low')) return false;
-                if (problem.type === 'general') return true;
-                return p.tags.includes(problem.type);
+        // 4. Show problem-specific recommendations (if any problems detected)
+        if (problems.length > 0) {
+            problems.forEach(problem => {
+                let candidates = allSurvivors.filter(p => p.tags.includes(problem.type));
+
+                if (candidates.length > 0) {
+                    anyResult = true;
+                    container.innerHTML += `
+                        <div class="col-span-full mt-4 mb-2">
+                            <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                ${problem.label}
+                            </h4>
+                        </div>`;
+
+                    candidates.forEach(plant => {
+                        recommendedIds.add(plant.id);
+                        container.innerHTML += renderPlantCard(plant);
+                    });
+                }
             });
 
-            // FILTER 2: SURVIVAL CHECK (PENTING!)
-            // Buang tanaman yang akan MATI di kondisi ini
-            let survivors = candidates.filter(p => {
-                if (!p.safety_limits) return true;
-
-                // Cek Batas Atas Suhu
-                // Contoh: Jika user 33°C, Areca Palm (Max 32°C) akan return FALSE -> Dibuang
-                if (temp > p.safety_limits.max_temp) return false;
-
-                // Cek Batas Bawah Kelembaban
-                // Contoh: Jika humidity 20%, Boston Fern (Min 40%) akan return FALSE -> Dibuang
-                if (hum < p.safety_limits.min_hum) return false;
-
-                return true;
-            });
-
-            if (survivors.length > 0) {
+            // 5. Show OTHER surviving plants that weren't recommended for specific problems
+            let otherSurvivors = allSurvivors.filter(p => !recommendedIds.has(p.id));
+            if (otherSurvivors.length > 0) {
                 anyResult = true;
-                const sectionTitle = `
-                    <div class="col-span-full mt-4 mb-2">
+                container.innerHTML += `
+                    <div class="col-span-full mt-6 mb-2">
                         <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
-                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                            ${problem.label}
+                            <span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+                            🌿 Other Surviving Plants
                         </h4>
+                        <p class="text-[10px] text-gray-400 mt-1">These plants can still thrive in your current conditions</p>
                     </div>`;
-                container.innerHTML += sectionTitle;
-
-                survivors.forEach(plant => {
+                otherSurvivors.forEach(plant => {
                     container.innerHTML += renderPlantCard(plant);
                 });
             }
-        });
+        } else {
+            // No problems — Air quality is excellent
+            anyResult = true;
+            container.innerHTML += `
+                <div class="col-span-full mt-4 mb-2">
+                    <div class="bg-green-100 p-4 rounded-2xl border border-green-200 text-center">
+                        <h4 class="font-bold text-green-800 text-lg mb-1">🌟 Air Quality is Excellent!</h4>
+                        <p class="text-sm text-green-700">Your environment has low TVOC, low CO₂, comfortable temperature, and good humidity. You don't <i>need</i> air-purifying plants right now.</p>
+                        <p class="text-xs text-green-600 mt-2">Plants below are for <strong>aesthetic enhancement</strong> only — they can all survive in your current conditions.</p>
+                    </div>
+                </div>`;
+            if (allSurvivors.length > 0) {
+                container.innerHTML += `
+                    <div class="col-span-full mt-4 mb-2">
+                        <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                            <span class="w-2 h-2 bg-pink-400 rounded-full"></span>
+                             Aesthetic Enhancers
+                        </h4>
+                    </div>`;
+                allSurvivors.forEach(plant => {
+                    container.innerHTML += renderPlantCard(plant);
+                });
+            }
+        }
 
-        // Tampilkan Warning jika TIDAK ADA tanaman yang selamat
+        // Warning if NO plants survive
         if (!anyResult) {
-            container.innerHTML = `
+            container.innerHTML += `
                 <div class="col-span-full text-center p-6 bg-red-50 rounded-xl border border-red-100">
                     <p class="text-red-500 font-bold mb-1">Conditions too harsh for plants! ⚠️</p>
                     <p class="text-xs text-red-400">
                         Current: <b>${temp}°C</b> / <b>${hum}% Humidity</b>.<br>
-                        Most plants (like Areca Palm or Ferns) will die here.<br>
+                        Most plants will die in these conditions.<br>
                         👉 Try <strong>Snake Plant</strong> or <strong>Jade Plant</strong> (Survivors), or adjust your AC/Humidifier first.
                     </p>
                 </div>`;
@@ -341,69 +387,100 @@ function analyzeLocationData() {
         const light = document.getElementById('pref-light').value;
         const safety = document.getElementById('pref-safety').value;
 
-        // MODEL 2: Definisikan Masalah TANPA TVOC
+        // MODEL 2: Detect problems (NO TVOC)
         let problems = [];
-        if (co2 > 1000) problems.push({ type: 'removes_co2', label: 'High CO₂ Solution' });
-        // TIDAK ADA TVOC CHECK! Karena gak ada sensor
-        if (temp > 28) problems.push({ type: 'removes_heat', label: 'Cooling Plants' });
-        if (humidity < 40) problems.push({ type: 'humidifier', label: 'Humidifiers' });
+        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '🔬 High CO₂ Solution' });
+        if (temp > 28) problems.push({ type: 'removes_heat', label: '❄️ Cooling Plants' });
+        if (humidity < 40) problems.push({ type: 'humidifier', label: '💧 Humidifiers' });
 
-        if (problems.length === 0) problems.push({ type: 'general', label: 'Great for Maintenance' });
+        // Get ALL surviving plants
+        let allSurvivors = plantDatabase.filter(p => {
+            if (safety === 'Yes' && p.toxicity === true) return false;
+            if (light === 'Low' && p.light_needs && !p.light_needs.includes('Low')) return false;
+            if (!p.safety_limits) return true;
+            if (temp > p.safety_limits.max_temp) return false;
+            if (humidity < p.safety_limits.min_hum) return false;
+            return true;
+        });
 
         container.innerHTML = '';
 
-        // Add info badge that TVOC is not considered
+        // Location mode badge + environment summary
         container.innerHTML += `
-            <div class="col-span-full mb-4">
+            <div class="col-span-full mb-2">
                 <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center gap-3">
-                    <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
-                        <i data-lucide="map-pin" class="w-4 h-4 text-indigo-600"></i>
-                    </div>
+                    <i data-lucide="map-pin" class="w-5 h-5 text-indigo-600 shrink-0"></i>
                     <div>
-                        <p class="text-xs font-bold text-indigo-700">Location-Based Mode</p>
-                        <p class="text-[10px] text-indigo-500">Recommendations based on Temperature, Humidity & CO₂ only. TVOC data not available.</p>
+                        <p class="text-xs font-bold text-indigo-700">Location-Based: ${temp}°C · ${humidity}% Humidity · CO₂ ${co2}ppm</p>
+                        <p class="text-[10px] text-indigo-500">${allSurvivors.length} of ${plantDatabase.length} plants can survive · TVOC not measured · ${problems.length > 0 ? problems.length + ' issue(s)' : 'Conditions ideal'}</p>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
 
+        let recommendedIds = new Set();
         let anyResult = false;
 
-        problems.forEach(problem => {
-            // FILTER 1: Cari kandidat (TANPA filter TVOC)
-            let candidates = plantDatabase.filter(p => {
-                if (safety === 'Yes' && p.toxicity === true) return false;
-                if (light === 'Low' && p.light_needs && !p.light_needs.includes('Low')) return false;
-                if (problem.type === 'general') return true;
-                return p.tags.includes(problem.type);
+        if (problems.length > 0) {
+            problems.forEach(problem => {
+                let candidates = allSurvivors.filter(p => p.tags.includes(problem.type));
+
+                if (candidates.length > 0) {
+                    anyResult = true;
+                    container.innerHTML += `
+                        <div class="col-span-full mt-4 mb-2">
+                            <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                                ${problem.label}
+                            </h4>
+                        </div>`;
+
+                    candidates.forEach(plant => {
+                        recommendedIds.add(plant.id);
+                        container.innerHTML += renderPlantCard(plant);
+                    });
+                }
             });
 
-            // FILTER 2: SURVIVAL CHECK - Hanya temp & humidity
-            let survivors = candidates.filter(p => {
-                if (!p.safety_limits) return true;
-                if (temp > p.safety_limits.max_temp) return false;
-                if (humidity < p.safety_limits.min_hum) return false;
-                return true;
-            });
-
-            if (survivors.length > 0) {
+            // Other surviving plants
+            let otherSurvivors = allSurvivors.filter(p => !recommendedIds.has(p.id));
+            if (otherSurvivors.length > 0) {
                 anyResult = true;
-                const sectionTitle = `
-                    <div class="col-span-full mt-4 mb-2">
+                container.innerHTML += `
+                    <div class="col-span-full mt-6 mb-2">
                         <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
-                            <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
-                            ${problem.label}
+                            <span class="w-2 h-2 bg-blue-400 rounded-full"></span>
+                            🌿 Other Surviving Plants
                         </h4>
+                        <p class="text-[10px] text-gray-400 mt-1">These plants can still thrive in your current conditions</p>
                     </div>`;
-                container.innerHTML += sectionTitle;
-
-                survivors.forEach(plant => {
+                otherSurvivors.forEach(plant => {
                     container.innerHTML += renderPlantCard(plant);
                 });
             }
-        });
+        } else {
+            // No problems — Location conditions are ideal
+            anyResult = true;
+            container.innerHTML += `
+                <div class="col-span-full mt-4 mb-2">
+                    <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-center">
+                        <h4 class="font-bold text-indigo-800 text-lg mb-1">🌤️ Conditions Look Great!</h4>
+                        <p class="text-sm text-indigo-700">Based on your location weather, you don't specifically need problem-solving plants. Plants below are for <strong>aesthetic enhancement</strong>.</p>
+                    </div>
+                </div>`;
+            if (allSurvivors.length > 0) {
+                container.innerHTML += `
+                    <div class="col-span-full mt-4 mb-2">
+                        <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                            <span class="w-2 h-2 bg-pink-400 rounded-full"></span>
+                             Aesthetic Enhancers
+                        </h4>
+                    </div>`;
+                allSurvivors.forEach(plant => {
+                    container.innerHTML += renderPlantCard(plant);
+                });
+            }
+        }
 
-        // Warning jika tidak ada tanaman yang cocok
         if (!anyResult) {
             container.innerHTML += `
                 <div class="col-span-full text-center p-6 bg-red-50 rounded-xl border border-red-100">
@@ -416,9 +493,7 @@ function analyzeLocationData() {
                 </div>`;
         }
 
-        // Update AQI for location mode (tanpa TVOC)
         updateAQILocationMode(temp, humidity, co2);
-
         lucide.createIcons();
     }, 600);
 }
@@ -485,6 +560,7 @@ function updateAQILocationMode(t, h, co2) {
 function renderPlantCard(plant) {
     const isSaved = mySavedPlants.includes(plant.id);
     const btnClass = isSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-green-600 hover:text-white';
+    const refText = plant.references ? plant.references : '';
 
     return `
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col h-full">
@@ -504,6 +580,7 @@ function renderPlantCard(plant) {
                 </div>
                 <span class="text-green-600 font-bold text-xs bg-green-50 px-2 py-1 rounded-lg">${plant.price}</span>
             </div>
+            ${refText ? `<p class="text-[9px] text-blue-500 bg-blue-50 rounded-lg px-2 py-1 mb-2 leading-relaxed"><i data-lucide="book-open" class="w-3 h-3 inline mr-1"></i>${refText}</p>` : ''}
         </a>
         <div class="mt-auto pt-3 border-t border-gray-50">
             <button id="btn-save-${plant.id}" onclick="toggleSavePlant('${plant.id}')" class="w-full py-2 rounded-lg font-bold text-xs transition-colors ${btnClass}">
@@ -730,7 +807,8 @@ function renderMyPlantsPage() {
                 <div class="flex-1 flex flex-col justify-center">
                     <h4 class="font-bold text-gray-800 text-lg">${plant.name}</h4>
                     <p class="text-xs text-gray-500 italic mb-2">${plant.scientific}</p>
-                    <a href="${plant.shop_link}" target="_blank" class="text-xs text-green-600 font-bold hover:underline">Buy Again ↗</a>
+                    <a href="${plant.shop_link}" target="_blank" class="text-xs text-green-600 font-bold hover:underline">Buy from Noah Garden Centre ↗</a>
+                    <p class="text-[10px] text-gray-400 mt-1">${plant.maintenance} Maintenance</p>
                 </div>
                 <button onclick="toggleSavePlant('${plant.id}')" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
             </div>`;
@@ -753,9 +831,10 @@ function renderCareGuidePage() {
                     <div class="h-40 bg-cover bg-center relative" style="background-image: url('${plant.image}');">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6"><div><h3 class="text-2xl font-bold text-white">${plant.name}</h3></div></div>
                     </div>
-                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="flex gap-4"><div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center shrink-0"><i data-lucide="sun" class="w-5 h-5 text-yellow-500"></i></div><div><h5 class="font-bold text-gray-800 text-sm">Light</h5><p class="text-sm text-gray-600">${plant.light_needs}</p></div></div>
                         <div class="flex gap-4"><div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0"><i data-lucide="droplets" class="w-5 h-5 text-blue-500"></i></div><div><h5 class="font-bold text-gray-800 text-sm">Watering</h5><p class="text-sm text-gray-600">${plant.water_freq}</p></div></div>
+                        <div class="flex gap-4"><div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shrink-0"><i data-lucide="settings" class="w-5 h-5 text-green-500"></i></div><div><h5 class="font-bold text-gray-800 text-sm">Maintenance</h5><p class="text-sm text-gray-600">${plant.maintenance}</p></div></div>
                     </div>
                 </div>`;
             container.innerHTML += card;
@@ -776,6 +855,7 @@ function renderCareGuidePage() {
 }
 
 // 6. INITIALIZATION
+let _analyzeTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
     analyzeManualData();
     updateGauges();
@@ -787,7 +867,76 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) {
             el.addEventListener('input', () => {
                 updateGauges();
+                // Re-analyze recommendations when any input changes
+                clearTimeout(_analyzeTimer);
+                _analyzeTimer = setTimeout(() => {
+                    if (currentDataMode === 'sensor') {
+                        analyzeManualData();
+                    }
+                }, 300);
             });
         }
     });
 });
+
+// ==========================================
+// 7. PLACE TYPE & QUESTIONNAIRE HANDLER
+// ==========================================
+
+function handlePlaceChange(place) {
+    currentPlaceType = place;
+    console.log(`Place type changed to: ${place}`);
+
+    const badge = document.getElementById('recommendation-badge');
+
+    if (place !== 'home') {
+        if (badge) badge.innerText = `Optimized for ${place.charAt(0).toUpperCase() + place.slice(1)}`;
+
+        // Show Questionnaire Modal for non-home selections
+        showQuestionnaireModal(place);
+
+        // Re-analyze with new place type context
+        if (currentDataMode === 'sensor') analyzeManualData();
+        else analyzeLocationData();
+    } else {
+        if (badge) badge.innerText = 'Auto-Match';
+        if (currentDataMode === 'sensor') analyzeManualData();
+        else analyzeLocationData();
+    }
+}
+
+function showQuestionnaireModal(place) {
+    const modal = document.getElementById('questionnaire-modal');
+    const title = document.getElementById('quest-title');
+    if (modal) {
+        modal.classList.remove('hidden');
+        const placeLabels = {
+            'office': 'Office / Workspace',
+            'school': 'School / Education Centre',
+            'healthcare': 'Healthcare Facility',
+            'other': 'Space'
+        };
+        if (title) title.innerText = `Tell us about your ${placeLabels[place] || place}`;
+        lucide.createIcons();
+    }
+}
+
+function closeQuestionnaireModal() {
+    const modal = document.getElementById('questionnaire-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function handleQuestionnaireSubmit(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    console.log("Questionnaire submitted:", data);
+
+    // Close modal and provide feedback
+    closeQuestionnaireModal();
+
+    // Re-run analysis
+    if (currentDataMode === 'sensor') analyzeManualData();
+    else analyzeLocationData();
+}
