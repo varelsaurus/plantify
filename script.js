@@ -250,12 +250,12 @@ function analyzeManualData() {
         const light = document.getElementById('pref-light').value;
         const safety = document.getElementById('pref-safety').value;
 
-        // 1. Detect problems
+        // 1. Detect problems (with disclaimers beside each)
         let problems = [];
-        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '🔬 High CO₂ Solution' });
-        if (tvoc > 300) problems.push({ type: 'removes_tvoc', label: '🧪 Toxin Filter' });
-        if (temp > 28) problems.push({ type: 'removes_heat', label: '❄️ Cooling Plants' });
-        if (hum < 40) problems.push({ type: 'humidifier', label: '💧 Humidifiers' });
+        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '🔬 High CO₂ Solution', disclaimer: 'Plants supplement ventilation — open windows & reduce occupancy too.' });
+        if (tvoc > 300) problems.push({ type: 'removes_tvoc', label: '🧪 Toxin Filter', disclaimer: 'Remove pollution sources first. Plants are supplementary to air purifiers.' });
+        if (temp > 28) problems.push({ type: 'removes_heat', label: '❄️ Cooling Plants', disclaimer: 'Plants provide minor cooling. AC or fans are the primary solution.' });
+        if (hum < 40) problems.push({ type: 'humidifier', label: '💧 Humidifiers', disclaimer: 'For very dry air, a mechanical humidifier is more effective than plants alone.' });
 
         // 2. Get ALL surviving plants (regardless of problem matching)
         let allSurvivors = plantDatabase.filter(p => {
@@ -300,6 +300,7 @@ function analyzeManualData() {
                                 <span class="w-2 h-2 bg-green-500 rounded-full"></span>
                                 ${problem.label}
                             </h4>
+                            <p class="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3 inline"></i> ${problem.disclaimer}</p>
                         </div>`;
 
                     candidates.forEach(plant => {
@@ -387,11 +388,11 @@ function analyzeLocationData() {
         const light = document.getElementById('pref-light').value;
         const safety = document.getElementById('pref-safety').value;
 
-        // MODEL 2: Detect problems (NO TVOC)
+        // MODEL 2: Detect problems (NO TVOC) — with disclaimers
         let problems = [];
-        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '🔬 High CO₂ Solution' });
-        if (temp > 28) problems.push({ type: 'removes_heat', label: '❄️ Cooling Plants' });
-        if (humidity < 40) problems.push({ type: 'humidifier', label: '💧 Humidifiers' });
+        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '🔬 High CO₂ Solution', disclaimer: 'Plants supplement ventilation — open windows & reduce occupancy too.' });
+        if (temp > 28) problems.push({ type: 'removes_heat', label: '❄️ Cooling Plants', disclaimer: 'Plants provide minor cooling. AC or fans are the primary solution.' });
+        if (humidity < 40) problems.push({ type: 'humidifier', label: '💧 Humidifiers', disclaimer: 'For very dry air, a mechanical humidifier is more effective than plants alone.' });
 
         // Get ALL surviving plants
         let allSurvivors = plantDatabase.filter(p => {
@@ -432,6 +433,7 @@ function analyzeLocationData() {
                                 <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
                                 ${problem.label}
                             </h4>
+                            <p class="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3 inline"></i> ${problem.disclaimer}</p>
                         </div>`;
 
                     candidates.forEach(plant => {
@@ -560,11 +562,10 @@ function updateAQILocationMode(t, h, co2) {
 function renderPlantCard(plant) {
     const isSaved = mySavedPlants.includes(plant.id);
     const btnClass = isSaved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-green-600 hover:text-white';
-    const refText = plant.references ? plant.references : '';
 
     return `
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all group flex flex-col h-full">
-        <a href="${plant.shop_link}" target="_blank" class="block">
+        <div class="block">
             <div class="relative overflow-hidden rounded-xl mb-4">
                 <img src="${plant.image}" class="w-full h-32 object-cover transform group-hover:scale-105 transition-transform duration-500">
                 <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
@@ -580,8 +581,8 @@ function renderPlantCard(plant) {
                 </div>
                 <span class="text-green-600 font-bold text-xs bg-green-50 px-2 py-1 rounded-lg">${plant.price}</span>
             </div>
-            ${refText ? `<p class="text-[9px] text-blue-500 bg-blue-50 rounded-lg px-2 py-1 mb-2 leading-relaxed"><i data-lucide="book-open" class="w-3 h-3 inline mr-1"></i>${refText}</p>` : ''}
-        </a>
+            ${plant.shop_link ? `<a href="${plant.shop_link}" target="_blank" class="block w-full text-center py-2 mb-2 rounded-lg font-bold text-xs transition-colors bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white">Buy from Noah Garden Centre ↗</a>` : ''}
+        </div>
         <div class="mt-auto pt-3 border-t border-gray-50">
             <button id="btn-save-${plant.id}" onclick="toggleSavePlant('${plant.id}')" class="w-full py-2 rounded-lg font-bold text-xs transition-colors ${btnClass}">
                 ${isSaved ? '<i data-lucide="check" class="w-3 h-3 inline"></i> Added' : '<i data-lucide="plus" class="w-3 h-3 inline"></i> Add to My Plants'}
@@ -807,7 +808,7 @@ function renderMyPlantsPage() {
                 <div class="flex-1 flex flex-col justify-center">
                     <h4 class="font-bold text-gray-800 text-lg">${plant.name}</h4>
                     <p class="text-xs text-gray-500 italic mb-2">${plant.scientific}</p>
-                    <a href="${plant.shop_link}" target="_blank" class="text-xs text-green-600 font-bold hover:underline">Buy from Noah Garden Centre ↗</a>
+                    ${plant.shop_link ? `<a href="${plant.shop_link}" target="_blank" class="text-xs text-green-600 font-bold hover:underline">Buy from Noah Garden Centre ↗</a>` : ''}
                     <p class="text-[10px] text-gray-400 mt-1">${plant.maintenance} Maintenance</p>
                 </div>
                 <button onclick="toggleSavePlant('${plant.id}')" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
