@@ -2,15 +2,17 @@
 // 🌿 PLANTIFY DATA - Plant Database & Products
 // ==========================================
 
-// DATABASE TANAMAN - 13 Plants with Scientific References
-// Sources: NASA Clean Air Study (1989), Wolverton et al., peer-reviewed journals
+// DATABASE TANAMAN - 13 Plants with survival ranges from The Spruce
+// Sources: The Spruce care guides, NASA Clean Air Study (1989), Wolverton et al.
 const plantDatabase = [
     {
         id: 'snake_plant',
         name: 'Snake Plant',
         scientific: 'Dracaena trifasciata',
         tags: ['removes_co2', 'low_light', 'cam_photosynthesis', 'bedroom_friendly', 'removes_tvoc'],
-        safety_limits: { min_hum: 0, max_temp: 40 },
+        safety_limits: { min_temp: 10, max_temp: 35, min_hum: 20, max_hum: 80 },
+        toxicity: true,
+        voc_targets: ['formaldehyde', 'benzene', 'trichloroethylene', 'xylene'],
         water_freq: "Every 2-3 weeks",
         light_needs: "Low to Bright Indirect",
         maintenance: "Low",
@@ -24,7 +26,9 @@ const plantDatabase = [
         name: 'Boston Fern',
         scientific: 'Nephrolepis exaltata',
         tags: ['humidifier', 'removes_tvoc'],
-        safety_limits: { min_hum: 40, max_temp: 30 },
+        safety_limits: { min_temp: 15, max_temp: 35, min_hum: 50, max_hum: 90 },
+        toxicity: false,
+        voc_targets: ['formaldehyde'],
         water_freq: "Twice weekly (Keep moist)",
         light_needs: "Bright Indirect",
         maintenance: "High",
@@ -38,7 +42,9 @@ const plantDatabase = [
         name: 'Peace Lily',
         scientific: 'Spathiphyllum',
         tags: ['removes_tvoc', 'humidifier', 'low_light'],
-        safety_limits: { min_hum: 30, max_temp: 28 },
+        safety_limits: { min_temp: 13, max_temp: 32, min_hum: 30, max_hum: 80 },
+        toxicity: true,
+        voc_targets: ['benzene', 'formaldehyde', 'trichloroethylene', 'ammonia', 'xylene', 'toluene'],
         water_freq: "Weekly (will droop when thirsty)",
         light_needs: "Low to Medium",
         maintenance: "Low",
@@ -52,7 +58,9 @@ const plantDatabase = [
         name: 'Areca Palm',
         scientific: 'Dypsis lutescens',
         tags: ['removes_co2', 'humidifier', 'removes_heat'],
-        safety_limits: { min_hum: 40, max_temp: 32 },
+        safety_limits: { min_temp: 16, max_temp: 30, min_hum: 40, max_hum: 80 },
+        toxicity: false,
+        voc_targets: ['xylene', 'toluene'],
         water_freq: "Weekly",
         light_needs: "Bright Indirect",
         maintenance: "Medium",
@@ -66,7 +74,9 @@ const plantDatabase = [
         name: 'Rubber Plant',
         scientific: 'Ficus elastica',
         tags: ['removes_co2', 'removes_heat', 'removes_tvoc'],
-        safety_limits: { min_hum: 20, max_temp: 35 },
+        safety_limits: { min_temp: 15, max_temp: 30, min_hum: 30, max_hum: 80 },
+        toxicity: true,
+        voc_targets: ['formaldehyde'],
         water_freq: "Weekly",
         light_needs: "Low to Bright",
         maintenance: "Low",
@@ -80,7 +90,9 @@ const plantDatabase = [
         name: 'English Ivy',
         scientific: 'Hedera helix',
         tags: ['removes_mold', 'removes_tvoc'],
-        safety_limits: { min_hum: 30, max_temp: 30 },
+        safety_limits: { min_temp: 10, max_temp: 32, min_hum: 30, max_hum: 80 },
+        toxicity: true,
+        voc_targets: ['benzene', 'formaldehyde', 'toluene', 'xylene'],
         water_freq: "Weekly",
         light_needs: "Low to Bright Indirect",
         maintenance: "Medium",
@@ -94,7 +106,9 @@ const plantDatabase = [
         name: "Jade Plant",
         scientific: "Crassula ovata",
         tags: ['removes_tvoc', 'removes_co2'],
-        safety_limits: { min_hum: 0, max_temp: 38 },
+        safety_limits: { min_temp: 13, max_temp: 35, min_hum: 20, max_hum: 60 },
+        toxicity: true,
+        voc_targets: ['toluene'],
         water_freq: "Every 2 weeks",
         light_needs: "Bright Direct",
         maintenance: "Low",
@@ -108,7 +122,9 @@ const plantDatabase = [
         name: 'Aglaonema',
         scientific: 'Aglaonema commutatum',
         tags: ['removes_tvoc', 'low_light'],
-        safety_limits: { min_hum: 30, max_temp: 32 },
+        safety_limits: { min_temp: 15, max_temp: 32, min_hum: 30, max_hum: 80 },
+        toxicity: true,
+        voc_targets: ['benzene', 'formaldehyde'],
         water_freq: "Weekly",
         light_needs: "Low to Medium",
         maintenance: "Low",
@@ -122,7 +138,9 @@ const plantDatabase = [
         name: 'Aloe Vera',
         scientific: 'Aloe barbadensis miller',
         tags: ['removes_co2', 'removes_tvoc', 'cam_photosynthesis', 'bedroom_friendly'],
-        safety_limits: { min_hum: 0, max_temp: 40 },
+        safety_limits: { min_temp: 13, max_temp: 35, min_hum: 20, max_hum: 60 },
+        toxicity: true,
+        voc_targets: ['formaldehyde', 'benzene'],
         water_freq: "Every 2-3 weeks",
         light_needs: "Bright Direct",
         maintenance: "Low",
@@ -136,7 +154,9 @@ const plantDatabase = [
         name: 'Bamboo Palm',
         scientific: 'Chamaedorea seifrizii',
         tags: ['removes_co2', 'humidifier', 'removes_tvoc'],
-        safety_limits: { min_hum: 30, max_temp: 32 },
+        safety_limits: { min_temp: 16, max_temp: 30, min_hum: 35, max_hum: 80 },
+        toxicity: false,
+        voc_targets: ['formaldehyde', 'benzene', 'trichloroethylene'],
         water_freq: "Twice weekly",
         light_needs: "Bright Indirect",
         maintenance: "Medium",
@@ -150,7 +170,9 @@ const plantDatabase = [
         name: 'Golden Pothos',
         scientific: 'Epipremnum aureum',
         tags: ['removes_tvoc', 'removes_co2', 'low_light'],
-        safety_limits: { min_hum: 10, max_temp: 35 },
+        safety_limits: { min_temp: 15, max_temp: 35, min_hum: 30, max_hum: 80 },
+        toxicity: true,
+        voc_targets: ['formaldehyde', 'benzene', 'xylene', 'toluene'],
         water_freq: "Weekly",
         light_needs: "Low to Bright Indirect",
         maintenance: "Low",
@@ -164,7 +186,9 @@ const plantDatabase = [
         name: 'Spider Plant',
         scientific: 'Chlorophytum comosum',
         tags: ['removes_co2', 'removes_tvoc', 'humidifier'],
-        safety_limits: { min_hum: 20, max_temp: 35 },
+        safety_limits: { min_temp: 10, max_temp: 32, min_hum: 30, max_hum: 80 },
+        toxicity: false,
+        voc_targets: ['formaldehyde'],
         water_freq: "Weekly",
         light_needs: "Low to Bright Indirect",
         maintenance: "Low",
@@ -178,7 +202,9 @@ const plantDatabase = [
         name: 'ZZ Plant',
         scientific: 'Zamioculcas zamiifolia',
         tags: ['removes_tvoc', 'low_light', 'removes_co2'],
-        safety_limits: { min_hum: 0, max_temp: 38 },
+        safety_limits: { min_temp: 15, max_temp: 30, min_hum: 20, max_hum: 80 },
+        toxicity: true,
+        voc_targets: ['xylene', 'toluene', 'benzene'],
         water_freq: "Every 2-3 weeks",
         light_needs: "Low to Bright Indirect",
         maintenance: "Low",
@@ -188,6 +214,15 @@ const plantDatabase = [
         references: 'University of Copenhagen study (2014) — removes xylene, toluene, and benzene from indoor air. Extremely drought-tolerant due to rhizome water storage.'
     }
 ];
+
+// VOC SOURCE MAPPING - Used by questionnaire
+const vocSourceMapping = {
+    new_furniture: { label: 'New Furniture / Renovation (< 12 months)', targets: ['formaldehyde', 'toluene'] },
+    new_paint: { label: 'New Paint / Finishing (< 6 months)', targets: ['toluene', 'xylene', 'formaldehyde'] },
+    chemicals: { label: 'Art / Lab / Cleaning Chemicals', targets: ['toluene', 'xylene', 'ethanol', 'isopropanol'] },
+    traffic: { label: 'Nearby Outdoor Traffic / Parking', targets: ['benzene'] },
+    poor_ventilation: { label: 'Poor Ventilation (Windows usually closed)', targets: ['formaldehyde', 'benzene', 'toluene', 'xylene'] }
+};
 
 // VIDAVERDE PRODUCTS
 const vidaVerdeProducts = [

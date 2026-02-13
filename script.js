@@ -245,17 +245,33 @@ function analyzeManualData() {
     setTimeout(() => {
         const temp = parseInt(document.getElementById('temp-slider').value);
         const hum = parseInt(document.getElementById('hum-slider').value);
-        const tvoc = parseInt(document.getElementById('tvoc-slider').value);
+        const tvoc = parseFloat(document.getElementById('tvoc-slider').value);
         const co2 = parseInt(document.getElementById('co2-slider').value);
         const light = document.getElementById('pref-light').value;
         const safety = document.getElementById('pref-safety').value;
 
+        // OPTIMAL CONDITION RULE: if everything is optimal, no plants needed
+        const isOptimal = tvoc <= 0.5 && co2 <= 1000 && temp <= 28 && temp >= 18 && hum >= 40;
+        if (isOptimal) {
+            container.innerHTML = `
+                <div class="col-span-full mt-4 mb-2">
+                    <div class="bg-green-100 p-5 rounded-2xl border border-green-200 text-center">
+                        <h4 class="font-bold text-green-800 text-lg mb-2">All Conditions Optimal</h4>
+                        <p class="text-sm text-green-700">TVOC ${tvoc.toFixed(1)} mg/m\u00b3 \u2022 CO\u2082 ${co2} ppm \u2022 ${temp}\u00b0C \u2022 ${hum}% Humidity</p>
+                        <p class="text-xs text-green-600 mt-2">Your indoor environment is currently within safe thresholds for all measured parameters. <strong>No air-purifying plants are recommended at this time.</strong></p>
+                        <p class="text-[10px] text-green-500 mt-3 italic">Plants are supplementary tools \u2014 since your conditions are already ideal, focus on maintaining ventilation and reducing pollution sources.</p>
+                    </div>
+                </div>`;
+            lucide.createIcons();
+            return;
+        }
+
         // 1. Detect problems (with disclaimers beside each)
         let problems = [];
-        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '🔬 High CO₂ Solution', disclaimer: 'Plants supplement ventilation — open windows & reduce occupancy too.' });
-        if (tvoc > 300) problems.push({ type: 'removes_tvoc', label: '🧪 Toxin Filter', disclaimer: 'Remove pollution sources first. Plants are supplementary to air purifiers.' });
-        if (temp > 28) problems.push({ type: 'removes_heat', label: '❄️ Cooling Plants', disclaimer: 'Plants provide minor cooling. AC or fans are the primary solution.' });
-        if (hum < 40) problems.push({ type: 'humidifier', label: '💧 Humidifiers', disclaimer: 'For very dry air, a mechanical humidifier is more effective than plants alone.' });
+        if (co2 > 1000) problems.push({ type: 'removes_co2', label: '\ud83d\udd2c High CO\u2082 Solution', disclaimer: 'Plants supplement ventilation \u2014 open windows & reduce occupancy too.' });
+        if (tvoc > 0.5) problems.push({ type: 'removes_tvoc', label: '\ud83e\uddea Toxin Filter', disclaimer: 'Remove pollution sources first. Plants are supplementary to air purifiers.' });
+        if (temp > 28) problems.push({ type: 'removes_heat', label: '\u2744\ufe0f Cooling Plants', disclaimer: 'Plants provide minor cooling. AC or fans are the primary solution.' });
+        if (hum < 40) problems.push({ type: 'humidifier', label: '\ud83d\udca7 Humidifiers', disclaimer: 'For very dry air, a mechanical humidifier is more effective than plants alone.' });
 
         // 2. Get ALL surviving plants (regardless of problem matching)
         let allSurvivors = plantDatabase.filter(p => {
@@ -278,8 +294,8 @@ function analyzeManualData() {
                 <div class="${envClass} border rounded-xl p-3 flex items-center gap-3">
                     <i data-lucide="${envIcon}" class="w-5 h-5 ${envColor} shrink-0"></i>
                     <div>
-                        <p class="text-xs font-bold text-gray-700">${temp}°C · ${hum}% Humidity · TVOC ${tvoc}ppb · CO₂ ${co2}ppm</p>
-                        <p class="text-[10px] text-gray-500">${allSurvivors.length} of ${plantDatabase.length} plants can survive · ${problems.length > 0 ? problems.length + ' issue(s) detected' : 'Conditions are ideal'}</p>
+                        <p class="text-xs font-bold text-gray-700">${temp}\u00b0C \u00b7 ${hum}% Humidity \u00b7 TVOC ${tvoc.toFixed(1)} mg/m\u00b3 \u00b7 CO\u2082 ${co2}ppm</p>
+                        <p class="text-[10px] text-gray-500">${allSurvivors.length} of ${plantDatabase.length} plants can survive \u00b7 ${problems.length > 0 ? problems.length + ' issue(s) detected' : 'Conditions are ideal'}</p>
                     </div>
                 </div>
             </div>`;
@@ -598,31 +614,31 @@ function renderPlantCard(plant) {
 function updateGauges() {
     const temp = parseInt(document.getElementById('temp-slider').value);
     const hum = parseInt(document.getElementById('hum-slider').value);
-    const tvoc = parseInt(document.getElementById('tvoc-slider').value);
+    const tvoc = parseFloat(document.getElementById('tvoc-slider').value);
     const co2 = parseInt(document.getElementById('co2-slider').value);
 
-    document.getElementById('val-temp').innerText = temp + "°C";
+    document.getElementById('val-temp').innerText = temp + "\u00b0C";
     document.getElementById('val-hum').innerText = hum + "%";
-    document.getElementById('val-tvoc').innerText = tvoc + " ppb";
+    document.getElementById('val-tvoc').innerText = tvoc.toFixed(1) + " mg/m\u00b3";
     document.getElementById('val-co2').innerText = co2 + " ppm";
 
     const gTemp = document.querySelector('#g-temp .gauge-value'); if (gTemp) gTemp.innerText = temp;
     const gHum = document.querySelector('#g-hum .gauge-value'); if (gHum) gHum.innerText = hum;
-    const gTvoc = document.querySelector('#g-tvoc .gauge-value'); if (gTvoc) gTvoc.innerText = tvoc;
+    const gTvoc = document.querySelector('#g-tvoc .gauge-value'); if (gTvoc) gTvoc.innerText = tvoc.toFixed(1);
     const gCo2 = document.querySelector('#g-co2 .gauge-value'); if (gCo2) gCo2.innerText = co2;
 
     const cGreen = "#22c55e", cYellow = "#eab308", cRed = "#ef4444";
 
     updateSingleGauge('temp', temp, 18, 28, ['Cool', 'Good', 'Hot'], [cYellow, cGreen, cRed]);
     updateSingleGauge('hum', hum, 30, 60, ['Dry', 'Ideal', 'Damp'], [cRed, cGreen, cRed]);
-    updateSingleGauge('tvoc', tvoc, 200, 600, ['Safe', 'Mod', 'High'], [cGreen, cYellow, cRed]);
+    updateSingleGauge('tvoc', tvoc, 0.3, 1.0, ['Safe', 'Mod', 'High'], [cGreen, cYellow, cRed]);
     updateSingleGauge('co2', co2, 800, 1500, ['Fresh', 'Stuffy', 'Poor'], [cGreen, cYellow, cRed]);
 
     updateAQI(temp, hum, tvoc, co2);
 }
 
 function updateAQI(t, h, tvoc, co2) {
-    let penalty = ((tvoc / 1000) * 30) + ((co2 / 2000) * 30);
+    let penalty = ((tvoc / 3.0) * 30) + ((co2 / 2000) * 30);
     if (t > 30 || t < 18) penalty += 10;
     if (h < 30 || h > 70) penalty += 10;
 
@@ -917,7 +933,7 @@ function showQuestionnaireModal(place) {
             'healthcare': 'Healthcare Facility',
             'other': 'Space'
         };
-        if (title) title.innerText = `Tell us about your ${placeLabels[place] || place}`;
+        if (title) title.innerText = `VOC Assessment: ${placeLabels[place] || place}`;
         lucide.createIcons();
     }
 }
@@ -931,13 +947,82 @@ function handleQuestionnaireSubmit(e) {
     e.preventDefault();
 
     const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
-    console.log("Questionnaire submitted:", data);
+    const checkedSources = [];
+    for (const [key, val] of formData.entries()) {
+        if (val === 'yes') checkedSources.push(key);
+    }
 
-    // Close modal and provide feedback
+    // Build target VOC set from checked sources
+    let targetVocs = new Set();
+    checkedSources.forEach(source => {
+        if (vocSourceMapping[source]) {
+            vocSourceMapping[source].targets.forEach(v => targetVocs.add(v));
+        }
+    });
+
+    console.log('VOC sources:', checkedSources, 'Target VOCs:', [...targetVocs]);
+
+    // Close modal
     closeQuestionnaireModal();
 
-    // Re-run analysis
-    if (currentDataMode === 'sensor') analyzeManualData();
-    else analyzeLocationData();
+    // If no sources checked, just re-run normal analysis
+    if (targetVocs.size === 0) {
+        if (currentDataMode === 'sensor') analyzeManualData();
+        else analyzeLocationData();
+        return;
+    }
+
+    // Show VOC-targeted recommendations
+    const container = document.getElementById('recommendation-container');
+    const light = document.getElementById('pref-light').value;
+    const safety = document.getElementById('pref-safety').value;
+    const temp = parseInt(document.getElementById('temp-slider').value);
+    const hum = parseInt(document.getElementById('hum-slider').value);
+
+    // Filter plants: must survive AND target at least one identified VOC
+    let vocPlants = plantDatabase.filter(p => {
+        if (safety === 'Yes' && p.toxicity === true) return false;
+        if (light === 'Low' && p.light_needs && !p.light_needs.includes('Low')) return false;
+        if (!p.safety_limits) return false;
+        if (temp > p.safety_limits.max_temp) return false;
+        if (hum < p.safety_limits.min_hum) return false;
+        if (!p.voc_targets) return false;
+        return p.voc_targets.some(v => targetVocs.has(v));
+    });
+
+    // Build header showing targeted chemicals
+    const vocLabels = [...targetVocs].map(v => v.charAt(0).toUpperCase() + v.slice(1)).join(', ');
+
+    container.innerHTML = `
+        <div class="col-span-full mb-2">
+            <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center gap-3">
+                <i data-lucide="flask-conical" class="w-5 h-5 text-purple-600 shrink-0"></i>
+                <div>
+                    <p class="text-xs font-bold text-purple-800">VOC-Targeted Recommendations</p>
+                    <p class="text-[10px] text-purple-600">Targeting: ${vocLabels} \u2022 ${vocPlants.length} matching plants</p>
+                </div>
+            </div>
+        </div>`;
+
+    if (vocPlants.length > 0) {
+        container.innerHTML += `
+            <div class="col-span-full mt-2 mb-2">
+                <h4 class="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                    <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                    \ud83e\uddea Targeted VOC Removers
+                </h4>
+                <p class="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3 inline"></i> Plants are supplementary. Remove pollution sources and improve ventilation first.</p>
+            </div>`;
+        vocPlants.forEach(plant => {
+            container.innerHTML += renderPlantCard(plant);
+        });
+    } else {
+        container.innerHTML += `
+            <div class="col-span-full text-center p-6 bg-amber-50 rounded-xl border border-amber-100">
+                <p class="text-amber-600 font-bold mb-1">No surviving plants target these VOCs</p>
+                <p class="text-xs text-amber-500">Current conditions (${temp}\u00b0C / ${hum}% humidity) are too extreme, or no plants in our database target ${vocLabels}.</p>
+            </div>`;
+    }
+
+    lucide.createIcons();
 }
