@@ -337,6 +337,7 @@ function analyzeManualData() {
                             🌿 Other Surviving Plants
                         </h4>
                         <p class="text-[10px] text-gray-400 mt-1">These plants can still thrive in your current conditions</p>
+                        <p class="text-[10px] text-amber-600 mt-1 italic">Survival vs. Growth: The plant will survive, but growth will significantly slow down or stop entirely</p>
                     </div>`;
                 otherSurvivors.forEach(plant => {
                     container.innerHTML += renderPlantCard(plant);
@@ -470,6 +471,7 @@ function analyzeLocationData() {
                             🌿 Other Surviving Plants
                         </h4>
                         <p class="text-[10px] text-gray-400 mt-1">These plants can still thrive in your current conditions</p>
+                        <p class="text-[10px] text-amber-600 mt-1 italic">Survival vs. Growth: The plant will survive, but growth will significantly slow down or stop entirely</p>
                     </div>`;
                 otherSurvivors.forEach(plant => {
                     container.innerHTML += renderPlantCard(plant);
@@ -1011,7 +1013,7 @@ function handleQuestionnaireSubmit(e) {
                     <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
                     \ud83e\uddea Targeted VOC Removers
                 </h4>
-                <p class="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3 inline"></i> Plants are supplementary. Remove pollution sources and improve ventilation first.</p>
+                <p class="text-[10px] text-amber-600 mt-1 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3 inline"></i> TVOC values represent total volatile organic componds and do not identify specific chemicals. VOC-specific recommendations are based on inferred indoor sources from user responses and may not reflect actual compound concentrations.</p>
             </div>`;
         vocPlants.forEach(plant => {
             container.innerHTML += renderPlantCard(plant);
